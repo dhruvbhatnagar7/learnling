@@ -87,10 +87,11 @@ def cmd_ask(args: argparse.Namespace) -> None:
     _maybe_save_report(orchestrator, args.save_report)
 
 
+_DEMO_PASSAGE = "The cat sat on the mat. The cat had a hat. The cat ran to the mat and sat."
+
+
 def cmd_demo(args: argparse.Namespace) -> None:
-    passage_text = Path(__file__).resolve().parent.parent.joinpath(
-        "passages", "sample_level1.txt"
-    ).read_text().strip()
+    passage_text = _DEMO_PASSAGE
 
     profile = ChildProfile(age_years=6)
     orchestrator = Orchestrator(profile)
