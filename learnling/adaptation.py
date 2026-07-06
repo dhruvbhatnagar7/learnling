@@ -67,17 +67,31 @@ def _split_sentences(text: str) -> list[str]:
     return [s for s in _SENTENCE_BOUNDARY.split(text.strip()) if s]
 
 
+def _finish_chunk(words: list[str]) -> str:
+    chunk = " ".join(words).strip(" ,;—-")
+    if not chunk.endswith((".", "!", "?")):
+        chunk += "."
+    return chunk[0].upper() + chunk[1:] if chunk else chunk
+
+
 def _cap_sentence_length(sentence: str, max_words: int) -> list[str]:
     words = sentence.split()
     if len(words) <= max_words:
         return [sentence]
 
     chunks = []
-    for i in range(0, len(words), max_words):
-        chunk = " ".join(words[i : i + max_words])
-        if not chunk.endswith((".", "!", "?")):
-            chunk += "."
-        chunks.append(chunk)
+    remaining = words
+    while len(remaining) > max_words:
+        split_at = max_words
+        # prefer breaking at a natural pause near the cap over a hard word cut
+        for i in range(max_words, max(0, max_words - 3), -1):
+            if remaining[i - 1].endswith((",", ";", "—", "-")):
+                split_at = i
+                break
+        chunks.append(_finish_chunk(remaining[:split_at]))
+        remaining = remaining[split_at:]
+    if remaining:
+        chunks.append(_finish_chunk(remaining))
     return chunks
 
 
