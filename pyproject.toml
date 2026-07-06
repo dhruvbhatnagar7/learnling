@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learnling"
+version = "0.1.0"
+description = "An open-source, voice-first learning agent for young children."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Dhruv Bhatnagar", email = "dhruvbhatnagar7@gmail.com" },
+]
+keywords = ["education", "literacy", "speech-recognition", "ai-agents", "child-safety", "voice"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Education",
+]
+dependencies = []
+
+[project.optional-dependencies]
+asr = ["faster-whisper>=1.0.0"]
+llm = ["anthropic>=0.40.0"]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+learnling = "learnling.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dhruvbhatnagar7/learnling"
+
+[tool.setuptools.packages.find]
+include = ["learnling*"]
