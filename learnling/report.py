@@ -29,6 +29,7 @@ def build_summary(session: Session, include_transcripts: bool = False) -> dict:
                 "wpm": e["report_notes"].get("wpm"),
                 "assessment": e["report_notes"].get("assessment"),
                 "miscue_counts": e["report_notes"].get("miscue_counts"),
+                "suppressed_miscues": e["report_notes"].get("suppressed_miscues"),
             }
             for e in reading_events
         ],
@@ -57,13 +58,21 @@ def to_markdown(summary: dict) -> str:
     if summary["reading_stats"]:
         lines.append("## Reading")
         lines.append("")
-        lines.append("| # | Accuracy | WPM | Assessment | Miscues |")
-        lines.append("|---|----------|-----|------------|---------|")
+        lines.append("| # | Accuracy | WPM | Assessment | Miscues | Not raised |")
+        lines.append("|---|----------|-----|------------|---------|------------|")
         for i, stat in enumerate(summary["reading_stats"], start=1):
             accuracy = f"{stat['accuracy']:.0%}" if stat["accuracy"] is not None else "-"
             wpm = f"{stat['wpm']:.0f}" if stat["wpm"] is not None else "-"
             miscues = ", ".join(f"{k}: {v}" for k, v in (stat["miscue_counts"] or {}).items()) or "none"
-            lines.append(f"| {i} | {accuracy} | {wpm} | {stat['assessment']} | {miscues} |")
+            suppressed = stat.get("suppressed_miscues") or 0
+            lines.append(
+                f"| {i} | {accuracy} | {wpm} | {stat['assessment']} | {miscues} | {suppressed} |"
+            )
+        lines.append("")
+        lines.append(
+            "*Not raised: possible miscues the speech recogniser was not confident "
+            "enough about to mention to the learner. See `MISCUE_CONFIDENCE_THRESHOLD`.*"
+        )
         lines.append("")
 
     if "transcripts" in summary:
