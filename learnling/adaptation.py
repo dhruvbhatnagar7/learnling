@@ -10,11 +10,20 @@ Band table (v0, rule-based):
     4-6        8                    yes (see SIMPLIFICATION_MAP)
     7-8        12                   no
     9-10       16                   no
+    11+        20                   no
 
 Longer sentences are split at the word-count boundary rather than dropped —
 nothing the agent said is discarded, it's just re-paced for the listener.
 Vocabulary simplification is scoped to the youngest band only, since that's
 where "attempt" vs. "try" matters most for comprehension.
+
+The 11+ band exists because this layer governs how the agent *speaks*, and
+learners past ten are served by the rest of the system: an older student
+practising early phonics gets age-appropriate passages (see `selection.py`),
+and it would undo that work to hand them mature material and then talk over
+it in sentences clipped for a nine-year-old. Note that these bands partition
+age differently from `ContentTier` on purpose — how you speak to someone and
+what you ask them to read are different questions.
 
 An optional LLM polish pass can run after the rule-based shaping, off by
 default: set `LEARNLING_LLM=1` and `ANTHROPIC_API_KEY` to enable it. It
@@ -27,7 +36,7 @@ from __future__ import annotations
 import os
 import re
 
-BAND_MAX_SENTENCE_WORDS = {"4-6": 8, "7-8": 12, "9-10": 16}
+BAND_MAX_SENTENCE_WORDS = {"4-6": 8, "7-8": 12, "9-10": 16, "11+": 20}
 
 SIMPLIFICATION_MAP = {
     "attempt": "try",

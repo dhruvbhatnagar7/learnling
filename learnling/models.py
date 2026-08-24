@@ -80,7 +80,9 @@ def age_band_for(age_years: int) -> str:
         return "4-6"
     if age_years <= 8:
         return "7-8"
-    return "9-10"
+    if age_years <= 10:
+        return "9-10"
+    return "11+"
 
 
 @dataclass
