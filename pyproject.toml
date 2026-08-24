@@ -35,3 +35,6 @@ Homepage = "https://github.com/dhruvbhatnagar7/learnling"
 
 [tool.setuptools.packages.find]
 include = ["learnling*"]
+
+[tool.setuptools.package-data]
+learnling = ["data/*.json"]
