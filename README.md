@@ -1,9 +1,15 @@
 # learnling
 
-An open-source, voice-first learning agent for young children — it listens
-while they read and helps in the moment.
+An open-source, voice-first learning agent — it listens while a learner
+reads aloud and helps in the moment.
 
-*-ling* as in duckling: a young learner.
+Built for early readers **and for older students reading below grade
+level**. Skill level and content level are tracked separately, so a
+twelve-year-old practising decoding gets age-appropriate material, not
+material written for a six-year-old.
+
+*-ling* as in duckling: a young learner, at whatever age the learning
+happens.
 
 ## The problem
 
@@ -31,8 +37,50 @@ anything voice-first aimed at young children. It's starting to change: open
 child-speech-recognition efforts are cutting those error rates
 substantially and publishing open weights as a public good. What's still
 missing is the layer on top — an agent that's safe, age-adaptive, and
-actually built for a 6-year-old rather than a chat-completion adult. That's
-learnling.
+actually built for the learner in front of it rather than a
+chat-completion adult. That's learnling.
+
+## Skill level and content level are not the same thing
+
+Most reading tools collapse these into a single "reading level", and that
+one decision is why so little intervention software survives past third
+grade. An eleven-year-old working on consonant digraphs needs digraph
+practice — but hand them *the cat sat on the mat* and they learn something
+else instead: that the tool thinks they are a baby. Then they stop using
+it, and no amount of correct instruction matters.
+
+learnling tracks two independent axes, and never derives one from the
+other:
+
+| | |
+|---|---|
+| `foundational_stage` | phonics, decoding, fluency, word recognition |
+| `comprehension_stage` | vocabulary, inference, text structure, analysis |
+| `content_tier` | themes, topics, lexicon — **from age, never from skill** |
+
+The two skill tracks move independently, so a learner can be
+`foundational_stage="2"`, `comprehension_stage="5"`, `content_tier=UPPER`:
+an older student with a decoding gap and strong comprehension. That is the
+normal case this is designed around, not an edge case.
+
+Content tiers are `EARLY` (4–7), `MIDDLE` (8–11) and `UPPER` (12+).
+Choosing a passage is an intersection of all three properties — patterns
+from the decoding stage, theme and lexicon from the tier, prompts from the
+comprehension stage — and a learner is **never** served material below
+their age tier. Serving above it is fine, with scaffolding.
+
+Four rules follow from this and are enforced in code, not convention:
+
+- Content tier never reads a skill field. It is a read-only property over a
+  function that takes an age and nothing else.
+- Struggle earns more scaffolding at the current stage first. Only an
+  exhausted ladder steps a single sub-skill back, and never the whole track.
+- No stage change from a single session — three sessions of consistent
+  evidence are required. Fatigue, mood and an unfamiliar topic all look
+  exactly like a skill gap in one sitting.
+- No demotion language ever reaches the learner. Step-backs happen, and are
+  named by skill ("let's practise breaking big words apart"), never by
+  grade, level or difficulty.
 
 ## Architecture
 
@@ -65,7 +113,10 @@ flowchart TD
 2. **Scaffold, don't solve** — guide the child toward the answer; never
    just hand it over.
 3. **Age-adaptive by construction** — vocabulary, sentence structure, and
-   complexity of every response match the child's developmental age.
+   complexity of every response match the learner's developmental age.
+   Skill level and content level are tracked separately, so practising an
+   early skill never means being handed material written for a younger
+   child.
 4. **Safety as architecture** — content moderation and privacy-preserving
    data handling wrap every layer; they are not bolt-ons. No voice
    retention beyond the session by default. Designed with COPPA
