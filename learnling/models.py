@@ -136,6 +136,13 @@ class Utterance:
     confidence: float | None = None
     duration_seconds: float | None = None
     word_timestamps: list | None = None
+    #: Per-word confidence aligned to the words of `text`, where the backend
+    #: can supply it. Miscue detection is far more useful at this granularity
+    #: than at the utterance level: one shaky word among twenty good ones is
+    #: exactly the case worth suppressing, and an utterance-wide score cannot
+    #: express it. Adapters without word-level scores leave this None and fall
+    #: back to `confidence`.
+    word_confidences: list[float] | None = None
 
 
 @dataclass
@@ -144,6 +151,10 @@ class Miscue:
     expected: str | None
     heard: str | None
     position: int
+    #: The ASR confidence this miscue was judged at, where known. Retained so
+    #: a report can say how sure the system was, rather than presenting every
+    #: miscue as equally certain.
+    confidence: float | None = None
 
 
 @dataclass
@@ -154,6 +165,10 @@ class ReadingResult:
     accuracy: float
     wpm: float | None
     assessment: Assessment
+    #: Candidate miscues dropped because the recogniser was not confident
+    #: enough to raise them. Surfaced in the educator report — an adult should
+    #: be able to see that the system stayed quiet, and how often.
+    suppressed_miscues: int = 0
 
 
 @dataclass
