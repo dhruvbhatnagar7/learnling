@@ -1,0 +1,67 @@
+{
+  "_about": "Passages tagged on two independent axes: foundational_stage (which decodable patterns the text practises) and content_tier (who the text sounds like it was written for). The same pattern set is meant to exist at every tier. wcpm_target_grade is the grade level of the MATERIAL, for picking the right fluency-norm column, and is never shown to the learner.",
+  "_review_status": "The content_tier 'upper' passages are DRAFTS pending review: pattern coverage and tone are editorial judgments, not something to accept from a first pass. See docs/corpus-review.md.",
+  "passages": [
+    {
+      "id": "last_bus_01",
+      "foundational_stage": "1c",
+      "patterns": ["ck", "nk", "st", "mp", "ft", "sk", "dr", "str", "sn", "sl", "nt", "lt"],
+      "content_tier": "upper",
+      "wcpm_target_grade": 1,
+      "text": "The last bus left at six. Rick ran up the ramp and felt his bag slip. The strap had snapped. His kit went into the mud - his lamp, his drill, and a stack of prints for the job.\n\nThe bus did not stop. Rick felt the cost of it sink in. He had to text Ben and ask for a lift.",
+      "comprehension_prompts": {
+        "1c": ["What went into the mud?", "Why did Rick have to text Ben?"],
+        "3": ["What does Rick want to happen next, and what is stopping him?"],
+        "5": ["Rick 'felt the cost of it sink in.' What kind of cost do you think that means?"]
+      }
+    },
+    {
+      "id": "the_shift_01",
+      "foundational_stage": "2",
+      "patterns": ["sh", "ch", "th", "tch"],
+      "content_tier": "upper",
+      "wcpm_target_grade": 1,
+      "text": "Josh was on shift at the shop. The last van had left at ten. He had to check the batch, match it to the list, then lock up.\n\nThen - a crash. Josh went stiff. His chest felt thick with it.\n\nHe went up the path to the back. A shelf had split and the stock had shot off it. Chips of glass sat in the dust.\n\nJust a shelf. Not a theft. Josh let his breath go and got the brush.",
+      "comprehension_prompts": {
+        "2": ["What made the crash?", "What did Josh think it might be?"],
+        "3": ["How did Josh feel before he saw what had happened? How do you know?"],
+        "5": ["The text says 'Just a shelf. Not a theft.' Why are those two short sentences on their own?"]
+      }
+    },
+    {
+      "id": "coast_road_01",
+      "foundational_stage": "3",
+      "patterns": ["a_e", "i_e", "o_e", "ai", "ee", "ea", "oa"],
+      "content_tier": "upper",
+      "wcpm_target_grade": 2,
+      "text": "Jake rose at five to make the nine train. The rain had not let up all week, and the coast road was long.\n\nHe drove east. The sea was pale and the road was bleak. He kept his speed and made up time.\n\nA late train would mean he lost the deal. He had made that plain to no one but himself.\n\nHe reached the gate at three. The train was still at the rail.",
+      "comprehension_prompts": {
+        "3": ["Why did Jake get up at five?", "What was the weather like that week?"],
+        "4": ["What was at stake for Jake if he missed the train?"],
+        "5": ["'He had made that plain to no one but himself.' What does that tell you about Jake?"]
+      }
+    },
+    {
+      "id": "cat_mat_01",
+      "foundational_stage": "1a",
+      "patterns": ["cvc", "short a"],
+      "content_tier": "early",
+      "wcpm_target_grade": 1,
+      "text": "The cat sat on the mat. The cat had a hat. The cat ran to the mat and sat.",
+      "comprehension_prompts": {
+        "1a": ["Where did the cat sit?", "What did the cat have?"]
+      }
+    },
+    {
+      "id": "duck_pond_01",
+      "foundational_stage": "1b",
+      "patterns": ["initial blends", "final blends", "ll"],
+      "content_tier": "early",
+      "wcpm_target_grade": 1,
+      "text": "The little duck swam in the pond. She saw a frog sitting on a log. The duck and the frog became good friends and played there every day.",
+      "comprehension_prompts": {
+        "1b": ["Who did the duck meet?", "Where was the frog sitting?"]
+      }
+    }
+  ]
+}

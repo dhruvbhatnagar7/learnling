@@ -155,6 +155,34 @@ class ReadingResult:
 
 
 @dataclass
+class Passage:
+    """One piece of reading material, tagged on both axes at once.
+
+    Every passage carries a skill tag (`patterns`, `foundational_stage`) and
+    a content tag (`content_tier`) independently, which is what lets the same
+    phonics pattern set exist at three different maturity levels.
+
+    `wcpm_target_grade` is the grade level of the *material*, used to pick the
+    right column of the fluency norms. It is not the reader's grade and must
+    never be shown to the learner.
+    """
+
+    id: str
+    text: str
+    patterns: list[str]
+    foundational_stage: SkillStage
+    content_tier: ContentTier
+    wcpm_target_grade: int
+    #: Prompts keyed by the comprehension stage they suit, so a learner's
+    #: comprehension track can be served independently of their decoding one.
+    comprehension_prompts: dict[str, list[str]] = field(default_factory=dict)
+
+    @property
+    def word_count(self) -> int:
+        return len(self.text.split())
+
+
+@dataclass
 class AgentResponse:
     """An agent's raw output before the age-adaptation layer shapes it."""
 
