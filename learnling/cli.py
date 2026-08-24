@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 from learnling.asr.mock import SimulatedASR
-from learnling.models import ChildProfile, Miscue, Utterance
+from learnling.models import LearnerProfile, Miscue, Utterance
 from learnling.orchestrator import Orchestrator
 from learnling.report import generate_report
 
@@ -52,7 +52,7 @@ def _maybe_save_report(orchestrator: Orchestrator, path: str | None) -> None:
 
 def cmd_read(args: argparse.Namespace) -> None:
     passage_text = Path(args.passage).read_text().strip()
-    profile = ChildProfile(age_years=args.age)
+    profile = LearnerProfile(age_years=args.age)
     orchestrator = Orchestrator(profile)
     orchestrator.load_passage(passage_text)
 
@@ -75,7 +75,7 @@ def cmd_read(args: argparse.Namespace) -> None:
 
 
 def cmd_ask(args: argparse.Namespace) -> None:
-    profile = ChildProfile(age_years=args.age)
+    profile = LearnerProfile(age_years=args.age)
     orchestrator = Orchestrator(profile)
 
     utterance = _get_utterance(args)
@@ -93,7 +93,7 @@ _DEMO_PASSAGE = "The cat sat on the mat. The cat had a hat. The cat ran to the m
 def cmd_demo(args: argparse.Namespace) -> None:
     passage_text = _DEMO_PASSAGE
 
-    profile = ChildProfile(age_years=6)
+    profile = LearnerProfile(age_years=6)
     orchestrator = Orchestrator(profile)
     orchestrator.load_passage(passage_text)
 

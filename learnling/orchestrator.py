@@ -19,12 +19,12 @@ from learnling.agents.base import Agent
 from learnling.agents.learning import LearningAgent
 from learnling.agents.reading import ReadingAgent
 from learnling.adaptation import shape
-from learnling.models import ChildProfile, Session, Utterance
+from learnling.models import LearnerProfile, Session, Utterance
 from learnling.safety import check_output
 
 
 class Orchestrator:
-    def __init__(self, profile: ChildProfile, agents: list[Agent] | None = None):
+    def __init__(self, profile: LearnerProfile, agents: list[Agent] | None = None):
         self.session = Session(profile=profile)
         self.agents = agents if agents is not None else [ReadingAgent(), LearningAgent()]
         self.passage_text: str | None = None
