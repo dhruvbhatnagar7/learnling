@@ -1,9 +1,13 @@
 # learnling
 
+![A child on a living room sofa reads a printed page aloud to a small speaker on the side table](docs/learnling-at-home.svg)
+
 An open, screen-free reading companion for home. The companion listens while a child reads aloud, helps in the
 moment, and turns their mistakes into their next story.
 
 *-ling* as in duckling: a young learner, at whatever age the learning happens.
+
+![How it works: the child reads aloud from paper, learnling helps them sound out a missed word, and an adult sees what to practise next](docs/learnling-hero.svg)
 
 > **Status: v0.** The reading loop runs in text simulation. Anything below marked *target design*
 > isn't built. Where this says "does", the code does it today. Where it says "is designed to", it

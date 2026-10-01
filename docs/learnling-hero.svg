@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>learnling: a child reads aloud from paper, a small screen-free device listens and helps in the moment, and an adult gets a summary of what to practise next.</title>
+  <rect width="1200" height="520" rx="20" fill="#FFF9EF"/>
+
+  <!-- heading -->
+  <text x="600" y="62" text-anchor="middle" font-size="34" font-weight="700" fill="#2B2A33">learnling</text>
+  <text x="600" y="96" text-anchor="middle" font-size="19" fill="#5B5866">A screen-free reading companion that listens while a child reads aloud</text>
+
+  <!-- panel 1: child reading from paper -->
+  <g>
+    <rect x="40" y="130" width="340" height="340" rx="18" fill="#FFFFFF" stroke="#EADFCB" stroke-width="2"/>
+    <circle cx="80" cy="168" r="18" fill="#F4A259"/>
+    <text x="80" y="175" text-anchor="middle" font-size="19" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="110" y="175" font-size="20" font-weight="700" fill="#2B2A33">The child reads aloud</text>
+    <!-- paper -->
+    <g transform="rotate(-3 210 300)">
+      <rect x="90" y="215" width="200" height="150" rx="6" fill="#FFFDF8" stroke="#D8CDB8" stroke-width="2"/>
+      <text x="108" y="250" font-size="15" fill="#2B2A33">The boat let out a</text>
+      <text x="108" y="274" font-size="15" fill="#2B2A33">puff of <tspan font-weight="700" fill="#C8553D">steam</tspan>. It</text>
+      <text x="108" y="298" font-size="15" fill="#2B2A33">sailed down the</text>
+      <text x="108" y="322" font-size="15" fill="#2B2A33">river to the town.</text>
+      <rect x="108" y="336" width="120" height="6" rx="3" fill="#ECE4D4"/>
+    </g>
+    <!-- speech bubble -->
+    <rect x="160" y="380" width="200" height="56" rx="14" fill="#FDE7D2"/>
+    <path d="M190 380 L200 364 L212 380 Z" fill="#FDE7D2"/>
+    <text x="260" y="414" text-anchor="middle" font-size="17" font-style="italic" fill="#2B2A33">"...a puff of stem"</text>
+    <text x="60" y="456" font-size="14" fill="#7A7685">from paper, a book or an e-reader</text>
+  </g>
+
+  <!-- arrow 1 -->
+  <path d="M390 300 L418 300" stroke="#B9B2A6" stroke-width="4" stroke-linecap="round"/>
+  <path d="M414 290 L428 300 L414 310 Z" fill="#B9B2A6"/>
+
+  <!-- panel 2: device listens and helps -->
+  <g>
+    <rect x="430" y="130" width="340" height="340" rx="18" fill="#FFFFFF" stroke="#EADFCB" stroke-width="2"/>
+    <circle cx="470" cy="168" r="18" fill="#4F8A8B"/>
+    <text x="470" y="175" text-anchor="middle" font-size="19" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="500" y="175" font-size="20" font-weight="700" fill="#2B2A33">learnling helps</text>
+    <!-- device -->
+    <rect x="540" y="215" width="120" height="96" rx="40" fill="#4F8A8B"/>
+    <g fill="#2F5F60">
+      <circle cx="575" cy="252" r="5"/><circle cx="600" cy="252" r="5"/><circle cx="625" cy="252" r="5"/>
+      <circle cx="587" cy="274" r="5"/><circle cx="613" cy="274" r="5"/>
+    </g>
+    <path d="M680 240 q14 23 0 46" stroke="#4F8A8B" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M696 228 q24 35 0 70" stroke="#9CC3C4" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <text x="600" y="333" text-anchor="middle" font-size="14" fill="#7A7685">no screen, just a mic and a speaker</text>
+    <!-- reply bubble -->
+    <rect x="452" y="350" width="296" height="96" rx="14" fill="#E3F0EF"/>
+    <path d="M590 350 L600 336 L612 350 Z" fill="#E3F0EF"/>
+    <text x="600" y="380" text-anchor="middle" font-size="16" fill="#2B2A33">"Look at that word again.</text>
+    <text x="600" y="403" text-anchor="middle" font-size="16" fill="#2B2A33"><tspan font-weight="700">e</tspan> and <tspan font-weight="700">a</tspan> make one long sound.</text>
+    <text x="600" y="426" text-anchor="middle" font-size="16" fill="#2B2A33">Let's sound it out together."</text>
+  </g>
+
+  <!-- arrow 2 -->
+  <path d="M780 300 L808 300" stroke="#B9B2A6" stroke-width="4" stroke-linecap="round"/>
+  <path d="M804 290 L818 300 L804 310 Z" fill="#B9B2A6"/>
+
+  <!-- panel 3: adult summary -->
+  <g>
+    <rect x="820" y="130" width="340" height="340" rx="18" fill="#FFFFFF" stroke="#EADFCB" stroke-width="2"/>
+    <circle cx="860" cy="168" r="18" fill="#7B6BA8"/>
+    <text x="860" y="175" text-anchor="middle" font-size="19" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="890" y="175" font-size="20" font-weight="700" fill="#2B2A33">The adult sees the pattern</text>
+    <rect x="860" y="215" width="260" height="210" rx="10" fill="#F6F3FB" stroke="#DDD5EE" stroke-width="2"/>
+    <text x="880" y="246" font-size="15" font-weight="700" fill="#2B2A33">Session summary</text>
+    <line x1="880" y1="258" x2="1100" y2="258" stroke="#DDD5EE" stroke-width="2"/>
+    <text x="880" y="286" font-size="15" fill="#5B5866">Accuracy</text>
+    <text x="1100" y="286" text-anchor="end" font-size="15" font-weight="700" fill="#2B2A33">95%</text>
+    <text x="880" y="314" font-size="15" fill="#5B5866">Words correct / min</text>
+    <text x="1100" y="314" text-anchor="end" font-size="15" font-weight="700" fill="#2B2A33">58</text>
+    <text x="880" y="342" font-size="15" fill="#5B5866">Questions answered</text>
+    <text x="1100" y="342" text-anchor="end" font-size="15" font-weight="700" fill="#2B2A33">2 of 3</text>
+    <rect x="880" y="360" width="220" height="46" rx="8" fill="#7B6BA8"/>
+    <text x="990" y="389" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">Practise next: ea words</text>
+    <text x="840" y="456" font-size="14" fill="#7A7685">for a parent or teacher, never a recording</text>
+  </g>
+</svg>
