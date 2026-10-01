@@ -19,11 +19,6 @@ the moment, and turns their mistakes into their next story.
 
 ![How it works: the child reads aloud from paper, learnling helps them sound out a missed word, and an adult sees what to practise next](docs/learnling-hero.svg)
 
-> [!NOTE]
-> **Status: v0.** The reading loop runs in text simulation. Sections marked *Target design*
-> aren't built yet. Where this says "does", the code does it today. Where it says "is designed to",
-> it doesn't.
-
 ## Contents
 
 - [The problem](#the-problem)
