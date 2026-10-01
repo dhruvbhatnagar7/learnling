@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>A child sits on a living room sofa holding a printed page and reading it aloud to a small screen-free speaker on the coffee table.</title>
+
+  <!-- room -->
+  <rect width="1200" height="600" rx="20" fill="#F6E9D8"/>
+  <path d="M0 450 H1200 V580 a20 20 0 0 1 -20 20 H20 a20 20 0 0 1 -20 -20 Z" fill="#DDBF98"/>
+  <rect x="0" y="444" width="1200" height="8" fill="#C9A77E"/>
+
+  <!-- window -->
+  <rect x="70" y="70" width="230" height="230" rx="8" fill="#FFFFFF"/>
+  <rect x="82" y="82" width="206" height="206" rx="4" fill="#BFE0EE"/>
+  <circle cx="240" cy="130" r="26" fill="#FFE29A"/>
+  <path d="M82 250 q50 -40 100 0 t106 -10 V288 H82 Z" fill="#A9D3A0"/>
+  <rect x="181" y="82" width="8" height="206" fill="#FFFFFF"/>
+  <rect x="82" y="181" width="206" height="8" fill="#FFFFFF"/>
+  <path d="M60 60 h50 q-10 130 0 260 h-50 Z" fill="#E7826A"/>
+  <path d="M260 60 h50 v260 h-50 q10 -130 0 -260 Z" fill="#E7826A"/>
+  <rect x="50" y="52" width="270" height="10" rx="5" fill="#9C6B4E"/>
+
+  <!-- picture frame -->
+  <rect x="470" y="90" width="120" height="90" rx="4" fill="#9C6B4E"/>
+  <rect x="480" y="100" width="100" height="70" fill="#FCE9C8"/>
+  <path d="M480 170 l30 -35 l22 22 l16 -14 l32 27 Z" fill="#7FB4A7"/>
+
+  <!-- bookshelf -->
+  <rect x="940" y="110" width="190" height="340" rx="6" fill="#A87553"/>
+  <rect x="954" y="124" width="162" height="96" fill="#8A5C40"/>
+  <rect x="954" y="234" width="162" height="96" fill="#8A5C40"/>
+  <rect x="954" y="344" width="162" height="92" fill="#8A5C40"/>
+  <g>
+    <rect x="962" y="146" width="18" height="74" fill="#E7826A"/>
+    <rect x="982" y="158" width="14" height="62" fill="#F4C25B"/>
+    <rect x="998" y="140" width="20" height="80" fill="#4F8A8B"/>
+    <rect x="1020" y="152" width="16" height="68" fill="#7B6BA8"/>
+    <rect x="1048" y="170" width="60" height="14" fill="#F4C25B"/>
+    <rect x="1052" y="184" width="56" height="14" fill="#E7826A"/>
+    <rect x="1046" y="198" width="62" height="22" fill="#9CC3C4"/>
+    <rect x="962" y="262" width="22" height="68" fill="#7B6BA8"/>
+    <rect x="986" y="252" width="16" height="78" fill="#F4C25B"/>
+    <rect x="1004" y="266" width="18" height="64" fill="#E7826A"/>
+    <circle cx="1075" cy="300" r="22" fill="#7FB4A7"/>
+    <rect x="1062" y="306" width="26" height="24" rx="3" fill="#C9A77E"/>
+    <rect x="962" y="372" width="70" height="64" rx="4" fill="#F4E3C6"/>
+    <rect x="1040" y="360" width="18" height="76" fill="#4F8A8B"/>
+    <rect x="1060" y="368" width="16" height="68" fill="#E7826A"/>
+    <rect x="1078" y="356" width="20" height="80" fill="#F4C25B"/>
+  </g>
+
+  <!-- floor lamp -->
+  <rect x="356" y="190" width="6" height="258" fill="#6F5848"/>
+  <ellipse cx="359" cy="448" rx="26" ry="6" fill="#6F5848"/>
+  <path d="M322 190 L396 190 L380 140 L338 140 Z" fill="#FFE29A"/>
+
+  <!-- rug -->
+  <ellipse cx="640" cy="492" rx="340" ry="36" fill="#E7826A" opacity="0.55"/>
+  <ellipse cx="640" cy="492" rx="285" ry="26" fill="none" stroke="#FFF4E6" stroke-width="3" stroke-dasharray="10 8" opacity="0.8"/>
+
+  <!-- sofa -->
+  <rect x="390" y="250" width="380" height="130" rx="34" fill="#5E7FB0"/>
+  <rect x="408" y="318" width="344" height="80" rx="18" fill="#7193C4"/>
+  <rect x="372" y="300" width="56" height="130" rx="24" fill="#5E7FB0"/>
+  <rect x="732" y="300" width="56" height="130" rx="24" fill="#5E7FB0"/>
+  <rect x="404" y="396" width="352" height="34" rx="10" fill="#4D6C9A"/>
+  <rect x="404" y="430" width="14" height="20" rx="3" fill="#6F5848"/>
+  <rect x="742" y="430" width="14" height="20" rx="3" fill="#6F5848"/>
+  <!-- cushion -->
+  <rect x="660" y="262" width="80" height="66" rx="18" fill="#F4C25B" transform="rotate(10 700 295)"/>
+
+  <!-- child -->
+  <g>
+    <!-- legs over the seat edge -->
+    <rect x="478" y="350" width="80" height="34" rx="16" fill="#3E5A8A"/>
+    <rect x="530" y="356" width="30" height="78" rx="14" fill="#3E5A8A"/>
+    <rect x="496" y="356" width="30" height="78" rx="14" fill="#3E5A8A"/>
+    <ellipse cx="514" cy="438" rx="22" ry="10" fill="#E7826A"/>
+    <ellipse cx="548" cy="438" rx="22" ry="10" fill="#E7826A"/>
+    <!-- torso -->
+    <rect x="462" y="262" width="90" height="104" rx="34" fill="#F4A259"/>
+    <rect x="462" y="300" width="90" height="10" fill="#F7B979"/>
+    <!-- neck and head -->
+    <rect x="497" y="244" width="22" height="24" rx="8" fill="#C98E68"/>
+    <circle cx="508" cy="210" r="44" fill="#C98E68"/>
+    <path d="M462 206 q0 -54 50 -54 q46 0 48 50 q-18 -22 -50 -24 q-28 2 -48 28 Z" fill="#3B2A22"/>
+    <circle cx="466" cy="214" r="8" fill="#B87D58"/>
+    <!-- face looking down-right at the page -->
+    <path d="M512 214 q6 4 12 0" stroke="#3B2A22" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M534 214 q6 4 12 0" stroke="#3B2A22" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <ellipse cx="536" cy="238" rx="7" ry="6" fill="#7A3E2E"/>
+    <circle cx="520" cy="228" r="6" fill="#E89A86" opacity="0.6"/>
+    <!-- arms holding the page -->
+    <path d="M470 290 q-10 50 40 62 l74 -20" stroke="#F4A259" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <path d="M548 288 q20 30 50 28" stroke="#F4A259" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <!-- page -->
+    <g transform="rotate(-14 600 300)">
+      <rect x="560" y="246" width="96" height="124" rx="4" fill="#FFFFFF" stroke="#D8CDB8" stroke-width="2"/>
+      <rect x="572" y="262" width="66" height="5" rx="2.5" fill="#B9B2A6"/>
+      <rect x="572" y="276" width="72" height="5" rx="2.5" fill="#B9B2A6"/>
+      <rect x="572" y="290" width="58" height="5" rx="2.5" fill="#B9B2A6"/>
+      <rect x="572" y="304" width="70" height="5" rx="2.5" fill="#B9B2A6"/>
+      <rect x="572" y="318" width="50" height="5" rx="2.5" fill="#B9B2A6"/>
+      <rect x="572" y="332" width="66" height="5" rx="2.5" fill="#B9B2A6"/>
+    </g>
+    <!-- hands -->
+    <circle cx="586" cy="330" r="12" fill="#C98E68"/>
+    <circle cx="600" cy="314" r="12" fill="#C98E68"/>
+  </g>
+
+  <!-- coffee table and speaker -->
+  <rect x="790" y="402" width="140" height="14" rx="6" fill="#A87553"/>
+  <rect x="804" y="416" width="12" height="40" rx="3" fill="#8A5C40"/>
+  <rect x="904" y="416" width="12" height="40" rx="3" fill="#8A5C40"/>
+  <rect x="826" y="342" width="70" height="60" rx="26" fill="#4F8A8B"/>
+  <g fill="#2F5F60">
+    <circle cx="847" cy="364" r="4"/><circle cx="861" cy="364" r="4"/><circle cx="875" cy="364" r="4"/>
+    <circle cx="854" cy="378" r="4"/><circle cx="868" cy="378" r="4"/>
+  </g>
+  <rect x="842" y="346" width="38" height="4" rx="2" fill="#9CE0D0"/>
+  <!-- listening waves toward the child -->
+  <path d="M808 360 q-12 16 0 32" stroke="#4F8A8B" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M792 350 q-20 26 0 52" stroke="#9CC3C4" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- speech bubbles -->
+  <g>
+    <rect x="600" y="140" width="250" height="62" rx="16" fill="#FFFFFF" stroke="#EADFCB" stroke-width="2"/>
+    <path d="M622 200 L604 222 L644 200 Z" fill="#FFFFFF"/>
+    <path d="M622 201 L604 222 L644 201" stroke="#EADFCB" stroke-width="2" fill="none"/>
+    <text x="725" y="178" text-anchor="middle" font-size="17" font-style="italic" fill="#2B2A33">"...a puff of st-ea-m."</text>
+  </g>
+  <g>
+    <rect x="870" y="250" width="200" height="62" rx="16" fill="#E3F0EF" stroke="#C6E0DE" stroke-width="2"/>
+    <path d="M884 310 L870 334 L908 310 Z" fill="#E3F0EF"/>
+    <path d="M884 311 L870 334 L908 311" stroke="#C6E0DE" stroke-width="2" fill="none"/>
+    <text x="970" y="277" text-anchor="middle" font-size="17" fill="#2B2A33">"That's it! Now read</text>
+    <text x="970" y="299" text-anchor="middle" font-size="17" fill="#2B2A33">the whole sentence."</text>
+  </g>
+
+  <!-- caption -->
+  <text x="600" y="566" text-anchor="middle" font-size="20" font-weight="600" fill="#5A4636">Paper in hand, no screen. learnling listens and helps.</text>
+</svg>
