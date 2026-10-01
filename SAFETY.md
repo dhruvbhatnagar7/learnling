@@ -1,6 +1,7 @@
 # Safety & privacy
 
-learnling is built for children roughly ages 4-10. Safety and privacy are
+learnling is built for children from age 4 up, including older students
+reading below grade level. Safety and privacy are
 architectural constraints, not features bolted on afterward — every layer
 in the pipeline is designed with them in mind.
 

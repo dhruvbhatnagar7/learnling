@@ -1,191 +1,397 @@
 # learnling
 
-An open-source, voice-first learning agent — it listens while a learner
-reads aloud and helps in the moment.
+An open, screen-free reading companion for home. The companion listens while a child reads aloud, helps in the
+moment, and turns their mistakes into their next story.
 
-Built for early readers **and for older students reading below grade
-level**. Skill level and content level are tracked separately, so a
-twelve-year-old practising decoding gets age-appropriate material, not
-material written for a six-year-old.
+*-ling* as in duckling: a young learner, at whatever age the learning happens.
 
-*-ling* as in duckling: a young learner, at whatever age the learning
-happens.
+> **Status: v0.** The reading loop runs in text simulation. Anything below marked *target design*
+> isn't built. Where this says "does", the code does it today. Where it says "is designed to", it
+> doesn't. Apache-2.0.
 
 ## The problem
 
-Chatbot-style AI tutoring assumes a child can already articulate what they
-don't know and ask a good question about it. That's a metacognitive skill —
-knowing what you don't know, and being able to put it into words — and it's
-exactly the skill learning is supposed to build in the first place. Young
-children mostly don't have it yet. That's a big part of why "ask me
-anything" chat tutors have underperformed for this age group: the child has
-to clear a hurdle just to start the interaction.
+Chat-style AI tutoring asks a child to work out what they don't understand and then put it into a
+question. That's a hard skill, and it's the one that learning is supposed to build. Most young
+children don't have it yet, which is a good part of why "ask me anything" tutors have done badly with
+this age group. The child has to get over a hurdle before anything starts.
 
-**The thesis:** embed the AI in the activity instead of waiting beside it.
-The child reads aloud, or talks through a task, the way they already would
-with a teacher or parent nearby. The agent listens, understands the
-utterance at the child's developmental level, and responds inside the flow
-of the activity — no separate chat window, no need to first figure out what
-to ask. Engagement is structural to the task, not optional.
+The alternative is to put a proactive agent inside something the child is already doing. Reading aloud works
+well for this use case. A child reads the way they would with an adult sitting next to them, and the agent
+listens and helps as they go. There's no app to open and nothing for the child to ask for.
 
-## Why now
+Children are still asked to read every day, but they are reading less well and less often
+than they used to. On the 2024 National Assessment of Educational Progress, 40% of fourth graders
+scored below the Basic level in reading, up from 37% in 2022. About a third of eighth graders scored
+below Basic, the largest share since the assessment began in 1992
+([NAEP 2024 reading](https://www.nationsreportcard.gov/reports/reading/2024/g4_8/)). Reading for fun
+has fallen as well. In 2012, 53% of nine-year-olds said they read for fun almost every day, and by
+2022 that was 39%. For thirteen-year-olds it went from 27% in 2012 to 14% in 2023, the lowest figure
+the survey has recorded
+([NAEP long-term trend](https://www.nationsreportcard.gov/highlights/ltt/2023/),
+[National Endowment for the Arts summary](https://www.arts.gov/stories/blog/2024/federal-data-reading-pleasure-all-signs-show-slump)).
 
-Child speech recognition has historically been far worse than adult ASR —
-word error rates 4-8x higher are typical for generic models, because almost
-all training data skews adult. That's been the practical blocker for
-anything voice-first aimed at young children. It's starting to change: open
-child-speech-recognition efforts are cutting those error rates
-substantially and publishing open weights as a public good. What's still
-missing is the layer on top — an agent that's safe, age-adaptive, and
-actually built for the learner in front of it rather than a
-chat-completion adult. That's learnling.
+The adults around the child are stretched. A teacher with a full class can't
+sit beside each child and listen to them read. Many parents are working in the evening, or aren't
+sure how to help when their child gets stuck on a word. Children who do read on their own tend to
+guess at or skip the words they can't sound out, so the reading happens but the phonics practice
+doesn't.
 
-## Skill level and content level are not the same thing
+Most schools send home something like twenty minutes of reading a night, and in most houses the only record of it is a parent's signature.
 
-Most reading tools collapse these into a single "reading level", and that
-one decision is why so little intervention software survives past third
-grade. An eleven-year-old working on consonant digraphs needs digraph
-practice — but hand them *the cat sat on the mat* and they learn something
-else instead: that the tool thinks they are a baby. Then they stop using
-it, and no amount of correct instruction matters.
+A useful tool here has to do three things. 1) It has to make reading enjoyable again for
+children who have stopped wanting to do it. 2) For children who are reading, it has to notice when they
+are stuck and help them in the moment. 3) And it has to tell the teacher where each child is weak, and
+add that up across the class so the teacher can see which skills the whole class is having trouble
+with. learnling is intended to help with all three.
 
-learnling tracks two independent axes, and never derives one from the
-other:
+## What it looks like for the child
+
+*Target design.* learnling is designed to run on a small cloud-connected device with a
+microphone and a speaker and no screen. The child reads from a sheet of paper, a book or an e-reader.
+The device already has a copy of the same text, so it knows which words are coming. It listens,
+steps in during the session if the child needs help, and at the end gives the child feedback and
+sends a summary to the school's learning management system.
+
+Here is an example. The names and details are made up.
+
+Sam is in second grade. His class is learning vowel digraphs, which are pairs of letters that make
+one sound, like the *ea* in "steam" and the *oa* in "boat". His teacher, Linda, has assigned a
+twenty-line passage about a steamboat as reading homework. Because the assignment came through the
+school's system, the device at Sam's house already has the passage.
+
+Sam comes home, puts the printed page on the kitchen table and tells the device he is ready to read.
+He starts reading aloud. The first few lines go well and the device says nothing. In line six he
+reads "a puff of steam" as "a puff of stem". The device waits a moment to see if he corrects himself.
+He doesn't, so it asks him to look at the word again and reminds him that *e* and *a* together make
+one long sound. They sound the word out together, and then Sam reads the whole sentence again and
+gets it right.
+
+When he reaches the end, the device asks him to read the passage a second time. This time it doesn't
+interrupt. It times the read and works out how many words he read correctly per minute.
+
+Then the device asks Sam three questions about what he just read, and he answers out
+loud. The first two are about what happened in the story, such as where the steamboat was going. The
+third asks why the captain turned the boat around, which the passage doesn't say directly. Sam
+answers the first two and isn't sure about the third, so the device talks it through with him.
+
+Afterwards the device tells Sam what went well and names the one thing to practise, which is *ea*
+words.
+
+It sends Linda a short summary: Sam missed three of the five *ea* words on his first read and
+got *oa* right every time, and he answered two of the three questions about the story. When Linda looks at the summaries for the whole class the next morning,
+she can see that eight of her twenty-two students had the same trouble with *ea*, so she spends ten
+minutes on it with everyone. Sam's next passage has more *ea* words in it.
+
+The rules behind that session are these.
+
+The first read is for accuracy. The agent keeps quiet while things are going fine, and waits a moment
+before stepping in. When it is confident about a miscue it does what a reading teacher does: sounds the word out with the child, then asks them to read the whole sentence again and get it right. Fixing the word on its own isn't the point; the sentence has to come out clean. If sounding it out together doesn't work, the agent just
+says the word and moves on.
+
+The second read is the same passage again, now familiar, for fluency. No interruptions this time,
+because stopping a child mid-sentence is not helpful. This is the read that produces words correct per minute, reported against the Hasbrouck and Tindal (2017) norms.
+
+Moving on to the next skill uses the published threshold too: 95-98% accuracy on a first attempt.
+
+After the second read the agent asks a few spoken questions about the passage. Some can
+be answered straight from the text and at least one needs the child to work something out. This
+means one session covers accuracy, fluency and comprehension on the same passage. Comprehension is
+tracked separately from decoding, because a child can be strong at one and weak at the other.
+
+learnling doesn't keep a reading log. A session finishes when the child reaches the end
+of the text, and there is no timer. It doesn't count minutes or streaks, it doesn't tell the child
+they missed yesterday, and it gives no badges for turning up. What an adult sees afterwards is about
+the reading itself, like "ea words keep tripping her up", rather than whether homework got done.
+
+## Where the text comes from
+
+*Target design.* The device needs to know the text before the child starts reading.
+There are two ways the text can get there.
+
+**1. Someone chose the text.**  It
+covers two situations. In the first, the school assigned the reading and the assignment is already
+synced to the device through the cloud, so there is nothing for the family to do. In the second, the
+child is reading something the device doesn't have, such as a library book. The child or a parent
+takes a photo of the page with a phone and sends it to the device, and the device converts the photo
+into text. The second situation matters because assigned texts are mostly a K-2 thing. Most US
+reading homework is free choice, and a book the child picked has no known text unless someone
+captures it.
+
+Where a text is loaded either way, any words using patterns the child hasn't been taught get tagged
+at load time. The agent just tells the child those words instead of running a correction on them, and
+they don't count as mistakes.
+
+**2. The device generates the text.** Here nobody has assigned anything, and the device writes a passage for the child. The passage is a decodable, which
+is a short text written so that nearly every word uses only the phonics patterns the child has
+already been taught. A language model writes it using the child's target phonics patterns
+and their interests. A separate checker, deterministic rather than another model, then confirms every
+word only uses patterns the child has already been taught, or taught sight words. Language models are
+bad at hard constraints, so if the check fails the passage gets regenerated rather than shipped. The
+safety layer runs over it as well, since it's text a child is about to read.
+
+Because the device has no screen, a generated passage has to end up on paper before the child can
+read it. The intended path is that the device sends it straight to the printer in the house.
+
+Printing can't be the only option, though. The families whose children need this most are the least
+likely to have a printer at home. A weekly pack printed at school, or a cheap built-in printer, are
+both worth designing for.
+
+## Skill level and content level
+
+A child can be in one place on decoding and somewhere else entirely on comprehension, and neither
+follows from their age. Collapsing all of that into one "reading level" is why a lot of intervention
+software stops working once a child is old enough to notice what they've been handed.
+
+This idea isn't ours. High-interest low-readability publishing is built on it, structured literacy for
+older readers has worked this way for decades. Some classroom tools already apply it too: a teacher
+picks a skill, and the generated text is personalised to what the class is into.
+
+learnling is designed to do the same thing for one child at home, and to cover both
+sides of reading in the same session. The first side is fluency, which is whether the child can read
+the words accurately and at a reasonable pace. The second is comprehension, which is whether they
+understood what they read. The two are tracked separately.
+
+The other part is personalisation. Over many sessions the device is designed to learn three things
+about a child. It learns where they usually trip up, such as a particular spelling pattern they keep
+missing. It learns what they like and don't like to read, from which passages they finish and which
+they give up on. And it learns what topics they like to talk about, from the conversation around the
+comprehension questions. The words a child keeps missing decide which patterns go into their next
+passage, and their interests decide what the passage is about. A passage about something the child
+cares about is more relatable, and the aim is that they read more because of it.
+
+What's different from the classroom tools is who picks the skill. Here nobody selects anything from a
+menu. The child's own mistakes across sessions choose the patterns for their next passage, without a
+teacher having to step in.
+
+In code there are three properties, and none of them is derived from another:
 
 | | |
 |---|---|
 | `foundational_stage` | phonics, decoding, fluency, word recognition |
 | `comprehension_stage` | vocabulary, inference, text structure, analysis |
-| `content_tier` | themes, topics, lexicon — **from age, never from skill** |
+| `content_tier` | themes, topics, lexicon. From age, never from skill. |
 
-The two skill tracks move independently, so a learner can be
-`foundational_stage="2"`, `comprehension_stage="5"`, `content_tier=UPPER`:
-an older student with a decoding gap and strong comprehension. That is the
-normal case this is designed around, not an edge case.
+Content tiers are `EARLY` (4-7), `MIDDLE` (8-11) and `UPPER` (12+). Choosing a passage means
+intersecting all three: patterns from the decoding stage, subject and vocabulary from the tier,
+prompts from the comprehension stage. A learner is never given material below their age tier. Above it
+is fine, with support.
 
-Content tiers are `EARLY` (4–7), `MIDDLE` (8–11) and `UPPER` (12+).
-Choosing a passage is an intersection of all three properties — patterns
-from the decoding stage, theme and lexicon from the tier, prompts from the
-comprehension stage — and a learner is **never** served material below
-their age tier. Serving above it is fine, with scaffolding.
+Four rules follow from this. Each has an example.
 
-Four rules follow from this and are enforced in code, not convention:
+1. **What a passage is about depends only on the child's age.** A child's reading skill never changes
+   the subjects and themes they are given. For example, a ten-year-old who is still working on
+   second grade phonics gets passages about things ten-year-olds care about, written with simple
+   spelling patterns. They are not given a story written for six-year-olds. In the code, the content
+   tier is calculated from age and cannot be set from any skill field.
 
-- Content tier never reads a skill field. It is a read-only property over a
-  function that takes an age and nothing else.
-- Struggle earns more scaffolding at the current stage first. Only an
-  exhausted ladder steps a single sub-skill back, and never the whole track.
-- No stage change from a single session — three sessions of consistent
-  evidence are required. Fatigue, mood and an unfamiliar topic all look
-  exactly like a skill gap in one sitting.
-- No demotion language ever reaches the learner. Step-backs happen, and are
-  named by skill ("let's practise breaking big words apart"), never by
-  grade, level or difficulty.
+2. **When a child struggles, they get more help before they get easier material.** Suppose a child
+   keeps missing *ea* words. The first thing that changes is the amount of help. The agent sounds
+   out more of those words with the child, and the next passages have fewer *ea* words mixed in with
+   words the child already reads well. The level of the material stays the same. If the child is
+   still missing *ea* words after that, they go back to an easier step for *ea* only, such as
+   practising it in single words before meeting it in sentences. Their other spelling patterns, their
+   comprehension level and their topics do not change.
 
-## Fluency, measured against published norms
+3. **A child's stage does not change after one session.** It changes when three sessions in a row
+   show the same thing. A child can read badly on one evening because they are tired, upset, or
+   reading about something they know nothing about, and in a single session that looks the same as
+   a skill gap.
 
-learnling reports oral reading fluency as **words correct per minute
-(WCPM)** against the Hasbrouck & Tindal ORF norms — the instrument
-intervention teachers already use. An educator can interpret the output on
-sight, with no explanation and no need to trust a scale we invented. An
-invented scale means nothing to anyone.
+4. **The child is never told they have been moved down a level.** When the agent goes back to an
+   easier step, it describes the skill, for example "let's practise breaking big words apart". It
+   does not mention a grade or a level, and the child does not see their profile.
 
-> Hasbrouck, J. & Tindal, G. (2017). *An update to compiled ORF norms*
-> (Technical Report No. 1702). Eugene, OR: Behavioral Research and
-> Teaching, University of Oregon.
+## Limitations: recognising children's speech
 
-```
-wcpm = (total words read − uncorrected errors) / elapsed minutes
-```
+Speech recognition is much worse on children than on adults. Word error rates several times higher
+are normal, because nearly all the training data is adult, and it gets worse the younger the child
+is.
 
-**Counted as errors:** mispronunciations, substitutions, omissions,
-hesitations beyond about three seconds, and words supplied by the system.
+Reading aloud looks like it should be able to dodge this, and it partly does. You know the text in advance, so
+the job is narrower: check what the child said against words and sounds you're already expecting,
+rather than transcribe open speech (where the computer does not know what's coming next). That's a much smaller problem.
 
-**Not errors:** self-corrections, repetitions, insertions, variation
-attributable to accent or dialect, and proper nouns on first encounter.
-That last group matters more than it looks — counting a dialect variation
-as an error tells a child their own speech is wrong, which is both false
-and a reliable way to lose them.
+It isn't a solved problem though, and the reason has to do with how speech recognition
+works. A speech recogniser is the software that turns audio into written words. It is the same kind
+of software that sits behind phone dictation and voice assistants. It has a vocabulary of real words,
+and for each stretch of sound it picks the word from that vocabulary that fits best. It can only
+answer with real words.
 
-Results are banded against the grade level of the **passage**, never the
-learner's own grade, so a twelve-year-old reading grade-2 material is
-measured against grade-2 norms. `needs_fluency_support` implements
-Hasbrouck & Tindal's published guidance exactly: ten or more words below
-the 50th percentile, averaged over **two unpracticed readings**. With fewer
-readings on record it withholds the judgment and says why, because one
-reading measures a day rather than a reader.
+Now suppose the page says *steam*, and a child who hasn't learned that *ea* makes one sound reads the
+two letters separately and says "steh-am". That isn't a word, so the recogniser can't write it down.
+It picks the closest real word instead, which is probably "steam". The transcript now says the child
+read "steam" correctly, when in fact they got it wrong.
 
-Three rules govern how any of this is shown:
+That means word-level transcription only shows you miscues that happen to be real words, like "stem"
+for "steam". Non-word attempts and half-finished sounding out, which is most of what a child who is
+actually decoding produces, don't survive the trip. To catch those you need evidence about individual
+sounds.
 
-- **Never show a percentile to a learner.** Bands are for the educator
-  report. To the learner: growth over time, never rank.
-- **Never celebrate speed.** A child who learns that reading should be fast
-  concludes they are bad at it the moment it isn't.
-- **Always report accuracy alongside rate.** High rate with low accuracy is
-  not fluency, and rate alone hides exactly the reader who is guessing
-  their way through a page at speed.
+That evidence comes from a second kind of model, one that listens for individual sounds
+instead of whole words. It would hear "steh-am", see that the sounds don't match *steam*, and flag
+it. The next section describes how that works. These models exist, but they are less accurate on
+children's voices than on adults', which is why this is listed as a limitation.
 
-## A note on ASR precision
+This matters because the whole experience depends on hearing the mistake. If the mistake
+has been tidied away before the agent sees it, the agent stays quiet, the child gets no help on the
+word they were struggling with, and the summary for the adult doesn't show it either. The children
+this happens to most are the ones still learning to decode, who are the ones the tool is for.
 
-Child speech recognition still misrecognises correct productions. learnling
-therefore biases miscue detection toward **not** flagging — high precision
-over high recall — and drops candidate miscues below a configurable
-confidence threshold (`MISCUE_CONFIDENCE_THRESHOLD`, or the
-`LEARNLING_MISCUE_CONFIDENCE` environment variable).
+So knowing the text makes the recognition problem smaller, but it doesn't make it go away.
 
-This is a deliberate design decision rather than a tuning default, because
-the two failure modes do not cost the same thing. A missed error costs one
-coaching opportunity out of many, and the next read will surface it again.
-A false *"you got that wrong"* costs a child confidence in their own
-reading and their trust in the tool — and no later correction takes that
-back. Given an asymmetry that steep, the detector should stay quiet when it
-is unsure.
+The comprehension questions are a smaller version of this problem. The device doesn't
+know in advance what a child will say in answer to a question. The way around it is to ask questions
+that can be answered with yes or no, a single word or a short phrase, such as "the storm". The
+device then only has to tell a handful of expected answers apart, which speech recognition does
+well. The cost is that questions needing a longer explanation in the child's own words are harder
+to check, so those are kept for the conversation and not scored.
 
-A suppressed miscue does not count against the learner's accuracy either;
-scoring them down for something we declined to raise would be the same
-accusation made quietly. The educator report shows how often the system
-stayed silent, so an adult can see it happening.
+The thing underneath all of this is data. Setting any of these thresholds sensibly needs recordings of
+children reading aloud, labelled sound by sound, and there is very little of that available publicly.
+If you have some, or want to help build some, that's the most useful thing anyone could do here.
+
+## The speech evidence interface
+
+*Target design.* This section describes what the speech software has to report to the
+rest of the system so that mistakes like the "steh-am" one above can be caught. None of it is built
+yet.
+
+learnling is not tied to one speech recogniser. Any recogniser can be plugged in, as long as it
+reports two kinds of information about what the child said.
+
+The first kind is about words. The recogniser reports which words it heard, when each word started
+and ended, and how confident it is about each one. This is enough to catch a mistake that is a real
+word, like "stem" for "steam", to notice a skipped word, and to time the read.
+
+The second kind is about the individual sounds inside each word, which are called phonemes. For each
+sound the child was supposed to make, the recogniser reports whether it heard that sound, how close
+the match was, and what it heard instead. This is what is needed to catch mistakes that aren't real
+words.
+
+There are two ways to compare what a child said against what they should have said:
+
+Scoring is checking against an answer key. You tell the model the word is *steam*, /s t iː m/, and it
+goes sound by sound asking whether each one was right. If the child read "stem", the /s/, /t/ and /m/
+come back fine and the vowel comes back badly. The standard method here is goodness of pronunciation,
+from Witt and Young (2000), and most scoring systems are refinements of it.
+
+Free phoneme recognition writes down what it heard first and compares afterwards. The model isn't told
+the word. It returns /s t ɛ m/, and a separate step notices that the long e should have been there and
+wasn't.
+
+Put simply, scoring tells you that a sound was wrong and which one it was. Free
+recognition tells you what the child said instead. The agent needs the second to give a useful hint,
+because "you said the short e, this one is the long e" is more help than "try that word again".
+
+The two come apart when sounds get added, dropped or repeated, which struggling readers do constantly.
+For "steams", "seam" or "s-s-steam", scoring has no slot for a sound that shouldn't be there or one
+that's missing, so it can't tell you what happened. Free phoneme recognition can. Scoring is the more reliable
+of the two, because knowing what to expect makes the listening easier, and that matters more with
+children's voices. Free recognition tells you more and is noisier.
+
+Our approach uses both: scoring on every word as a cheap first pass, then free recognition only on
+the words scoring flagged, to work out what actually went wrong. If either one comes back with low
+confidence the agent says nothing.
+
+Worth knowing: almost every pronunciation model you can buy or download was built for adults learning
+a second language, which means it's designed to score how far you are from a standard accent. That's
+the opposite of what's wanted here. Whatever sits behind the adapter, the dialect rule has to be
+enforced above it.
 
 ## Architecture
 
-Orchestrator on top; specialist agents per application; horizontal layers
-(ASR, age adaptation, safety) shared by all of them. Adding a new
-application means adding a new agent — the layers underneath don't change.
+*Target design.* Orchestrator on top, specialist agents underneath, shared horizontal layers. The
+split that matters is that signal processing produces evidence, the language model decides what to do
+about it, and the language model never touches audio.
 
 ```mermaid
 flowchart TD
-    K["Child speaks (reads aloud / asks / answers)"] --> A["Audio capture"]
-    A --> ASR["HORIZONTAL: child ASR\n(pluggable adapters; open child-speech models)"]
-    ASR --> O["ORCHESTRATOR\nclassifies utterance + activity context\nroutes to specialist agent\nowns session state"]
-    O --> RA["Reading Agent (v1 wedge)\noral reading practice\nmiscue detection: decoding|fluency|comprehension\nscaffold, don't solve"]
-    O --> LA["Learning/Q&A Agent\nbounded, age-appropriate answers"]
+    TP["Text prep (once, at load)\nexpected phonemes · allowed dialect variants\nphonics tag + syllable type per spelling unit"]
+    K["Child reads aloud from paper"] --> A["Audio capture"]
+    A --> ASR["HORIZONTAL: speech evidence adapter\nwords: transcript · timestamps · confidence\nphonemes: alignment · scores · what was heard"]
+    TP --> MD
+    ASR --> MD["Miscue detector (deterministic)\nalignment + thresholds -> candidates,\neach carrying its evidence\ndialect variants resolved here"]
+    MD --> O["ORCHESTRATOR\nfirst read / timed second read / comprehension questions / close\nowns session state"]
+    O --> RA["Reading agent\njudges candidates, never audio\ninterrupt or stay quiet\nI do / We do / You do"]
     O --> XA["future agents:\nmath talk · ELL oral language · storytelling"]
     RA --> R["Response synthesis"]
-    LA --> R
-    R --> AGE["HORIZONTAL: age adaptation\nvocabulary · sentence structure · complexity"]
+    XA --> R
+    R --> AGE["HORIZONTAL: age adaptation"]
     AGE --> K
-    SAFE["HORIZONTAL: safety\ncontent guardrails + session-only data"] -.-> ASR
-    SAFE -.-> O
+    SAFE["HORIZONTAL: safety\nguardrails + session-only data"] -.-> O
     SAFE -.-> AGE
-    O -.-> D["Teacher/adult view: session report\nscreening signals · progress"]
+    O --> REP["Adult report\nmiscues grouped by phonics tag"]
+    REP --> P["HORIZONTAL: personalisation\nlearner profile: recurring patterns,\nposition in sequence, interests"]
+    P --> GEN["Decodable generator + checker"]
+    GEN --> TP
 ```
+
+Every candidate miscue carries its own phonics tag, so the adult report is mostly a grouping
+operation. "ea words, three times", or which syllable division rule a child keeps missing.
+
+A few rules on the personalisation side. Look at patterns across sessions rather than any single one.
+Mix the target patterns in with mastered ones so accuracy stays up around the 95-98% band, because a
+passage built entirely out of a child's weak spots is miserable to read.
 
 ## Design principles
 
-1. **In the flow of the activity** — feedback happens inside the task
-   (reading aloud), not in a separate chat.
-2. **Scaffold, don't solve** — guide the child toward the answer; never
-   just hand it over.
-3. **Age-adaptive by construction** — vocabulary, sentence structure, and
-   complexity of every response match the learner's developmental age.
-   Skill level and content level are tracked separately, so practising an
-   early skill never means being handed material written for a younger
-   child.
-4. **Safety as architecture** — content moderation and privacy-preserving
-   data handling wrap every layer; they are not bolt-ons. No voice
-   retention beyond the session by default. Designed with COPPA
-   constraints in mind.
-5. **Open** — open code, open design, built on open models.
+1. Feedback happens inside the reading, not in a separate chat.
+2. Guide rather than supply. The agent follows the "I do, we do, you do" sequence that
+   teachers use. First the agent shows how to sound the word out (I do). Then the agent and the child
+   sound it out together (we do). Then the child reads it alone (you do). The agent says the word for
+   the child only after this has been tried and hasn't worked.
+3. Say nothing when unsure. Telling a struggling reader they got a word wrong when they didn't costs
+   more than missing a mistake. This is deliberate, and it does mean real mistakes get missed.
+4. A dialect pronunciation of a correctly decoded word isn't a mistake. This is handled before the
+   language model sees anything, not left to a prompt.
+5. Practising an early skill never means being handed material written for a younger child.
+6. Guardrails and privacy wrap every layer, including generated text. No voice kept past the session
+   by default. Built with COPPA in mind.
+7. Open code, open design, swappable recogniser, no lock-in to one vendor's accuracy.
+
+## What this isn't
+
+- learnling is not a screener. Tools such as DIBELS and Amira are used to screen children for reading
+  difficulty and have validation studies behind them, and learnling has none.
+- It does not diagnose anything. It shows an adult where a child's mistakes cluster, and it is up to
+  a teacher or a specialist to work out why.
+- It does not replace reading instruction. Good phonics teaching is multisensory and uses letter
+  tiles, tracing, gesture and sound. A voice device can cover two of those four, and the rest stays
+  with the teacher.
+
+## Prior art
+
+There are multiple other projects in this field that are helping advance the space:
+
+**[Project LISTEN](https://www.cs.cmu.edu/~listen/)** (Carnegie Mellon, from 1990) built a reading tutor that listened to children read
+aloud, with published studies behind it. Thirty-five years of prior art on the core idea.
+
+**[Amira Learning](https://amiralearning.com/)** listens as students read aloud, helps at the moment of struggle, adapts text and
+pacing, screens for dyslexia risk, and works in English and Spanish. Sold to schools and states.
+
+**[LitLab](https://www.litlab.ai/)** generates decodables aligned to six phonics programs, personalised to a class's interests,
+with comprehension questions, fluency analysis, dashboards and print output.
+
+**[SoapBox Labs](https://www.soapboxlabs.com/)** built a speech engine trained only on children's voices, with a passage fluency API
+that returns correct, substituted, omitted and inserted words. Proprietary, and part of
+[Curriculum Associates](https://www.curriculumassociates.com/about/press-releases/2023/11/curriculum-associates-expands-student-focused-ai-capabilities)
+since 2023.
+
+**[Reading Universe](https://readinguniverse.org/article/explore-teaching-topics/word-recognition/phonics/decodable-texts-for-each-phonics-skill)** publishes a free curated index of decodable texts by phonics skill, K-2 through
+teens.
+
+Both of the main commercial products cover more ground than this does. The differences worth stating
+are about where it runs and how the loop closes. This is meant for home, screen-free, with paper in
+hand, where they're platforms a school buys. One session covers accuracy, fluency and
+comprehension on the same passage, with the questions asked and answered out loud. The
+personalisation loop closes around one child without a teacher step, and it learns the child's
+interests as well as their mistakes. The code is open and the recogniser is swappable. And it stays
+quiet when it isn't sure.
+
+Where they're well ahead, which is scale, research lineage, a validated screener, Spanish, and
+decodability engines tied to named programs, the sensible thing is to fit alongside rather than
+compete. This isn't a screener and it can read decodables generated somewhere else.
 
 ## Quickstart
 
@@ -197,67 +403,57 @@ pip install -e .
 python -m learnling demo
 ```
 
-`demo` runs a scripted session end-to-end with no setup — a child reading a
-passage with a small miscue, a clean re-read, and a spoken question — so
-you can see the whole loop in about 10 seconds.
+`demo` runs a scripted session end to end with no setup: a child reading a passage with a small
+miscue, a clean re-read, and a spoken question. Takes about ten seconds.
 
-Try it with your own input:
+With your own input:
 
 ```bash
-python -m learnling read --passage passages/sample_level1.txt --age 6 \
-    --simulate "the cat sat on teh mat"
+python -m learnling read --passage passages/sample_steamboat.txt --age 7 \
+    --simulate "the boat let out a puff of stem"
 
 python -m learnling ask --age 7 --simulate "why is the sky blue"
 ```
 
-Real audio input (`--audio recording.wav`) requires the `asr` extra:
-`pip install "learnling[asr]"`. An optional LLM-backed Q&A and adaptation
-polish pass is available via the `llm` extra
-(`pip install "learnling[llm]"`) — see `learnling/agents/learning.py` and
-`learnling/adaptation.py` for how to enable it.
+Real audio (`--audio recording.wav`) needs the `asr` extra: `pip install "learnling[asr]"`. There's an
+optional LLM-backed Q&A and adaptation pass behind the `llm` extra. See `learnling/agents/learning.py`
+and `learnling/adaptation.py`.
 
-## Safety & privacy
+## Safety and privacy
 
-Safety and privacy are architectural constraints applied to every response,
-not a feature bolted on afterward:
+These are constraints on every response rather than a feature added later.
 
-- No audio is ever written to disk by this package.
-- Transcripts live only in an in-memory session for the duration of the
-  process — nothing persists unless you explicitly ask for a report.
-- `--save-report` writes session **stats** (accuracy, words-per-minute,
-  miscue counts, assessment categories) — not raw transcripts — by default.
-- No personal information is requested or stored; the agent redirects if
-  asked to solicit it.
-- Every response, whether rule-based or LLM-backed, passes through a
-  content guardrail before it reaches the child.
+- No audio is written to disk by this package.
+- Transcripts live in an in-memory session for the life of the process. Nothing persists unless you
+  ask for a report.
+- `--save-report` writes session stats, meaning accuracy, words correct per minute, miscue counts and
+  assessment categories. Not transcripts.
+- No personal information is asked for or stored, and the agent redirects if asked to collect any.
+- Every response, rule-based or LLM-backed, goes through a content guardrail first.
+- Generated passages go through the same guardrail, since a child is about to read them.
 
-See [`SAFETY.md`](SAFETY.md) for the full policy, including COPPA-informed
-design notes.
+See [`SAFETY.md`](SAFETY.md) for the full policy and the COPPA design notes.
 
 ## Roadmap
 
-- [x] **M1 — Text-simulated reading loop:** orchestrator + reading agent +
-      age adaptation + safety + CLI demo.
-- [x] **M1.5 — Skill/content separation and published fluency norms:** two
-      independent skill tracks, age-derived content tiers, passage selection
-      as an intersection, WCPM against Hasbrouck & Tindal, confidence-gated
-      miscue detection.
-- [ ] **M2 — Real audio:** whisper adapter; word timestamps → real fluency
-      metrics, and per-word confidence feeding the miscue gate.
-- [ ] **M3 — Open child-ASR models:** adapters for open child-speech
-      models (word + phoneme tracks) as open weights publish;
-      phoneme-level decoding feedback.
-- [ ] **M4 — Comprehension dialogue:** post-reading spoken Q&A
-      (LLM-backed), comprehension assessment beyond heuristics.
-- [ ] **M5 — Screening report:** longitudinal per-child signals suitable
-      for a teacher/parent view.
-- [ ] Later: math-talk agent, ELL oral-language agent, storytelling agent.
+- [x] **M1, text-simulated reading loop.** Orchestrator, reading agent, age adaptation, safety, CLI
+  demo. This is what runs today.
+- [ ] **M2, real audio.** Word-track adapter, timestamps into real fluency numbers, two-pass read
+  wired up end to end.
+- [ ] **M3, phoneme track.** Text prep, the miscue detector, scoring on every word with free
+  recognition on the flagged ones. Open phoneme checkpoints as the first adapter.
+- [ ] **M4, generation loop.** Decodable generator driven by the learner profile, with the
+  deterministic checker.
+- [ ] **M5, comprehension.** Spoken questions after the second read, tracked separately from decoding
+  level.
+- [ ] **M6, longitudinal report** for a teacher or parent.
+- [ ] Later: math talk agent, ELL oral language agent, storytelling agent.
 
-## Status
+## Contributing
 
-Early design / v0 — the reading loop works in text-simulation mode; audio
-and open child-ASR adapters are on the roadmap. Contributions and issues
-welcome.
+Most useful things, roughly in order: recordings of children reading aloud labelled sound by sound,
+adapters for open phoneme models, and arguments from people who teach reading about where this is
+wrong. Issues welcome.
 
 ## License
 
