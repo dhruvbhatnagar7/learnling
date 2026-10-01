@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "learnling"
 version = "0.1.0"
-description = "An open-source, voice-first learning agent for young children."
+description = "An open, screen-free reading companion that listens while a child reads aloud."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
