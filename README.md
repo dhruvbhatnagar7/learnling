@@ -82,6 +82,70 @@ Four rules follow from this and are enforced in code, not convention:
   named by skill ("let's practise breaking big words apart"), never by
   grade, level or difficulty.
 
+## Fluency, measured against published norms
+
+learnling reports oral reading fluency as **words correct per minute
+(WCPM)** against the Hasbrouck & Tindal ORF norms — the instrument
+intervention teachers already use. An educator can interpret the output on
+sight, with no explanation and no need to trust a scale we invented. An
+invented scale means nothing to anyone.
+
+> Hasbrouck, J. & Tindal, G. (2017). *An update to compiled ORF norms*
+> (Technical Report No. 1702). Eugene, OR: Behavioral Research and
+> Teaching, University of Oregon.
+
+```
+wcpm = (total words read − uncorrected errors) / elapsed minutes
+```
+
+**Counted as errors:** mispronunciations, substitutions, omissions,
+hesitations beyond about three seconds, and words supplied by the system.
+
+**Not errors:** self-corrections, repetitions, insertions, variation
+attributable to accent or dialect, and proper nouns on first encounter.
+That last group matters more than it looks — counting a dialect variation
+as an error tells a child their own speech is wrong, which is both false
+and a reliable way to lose them.
+
+Results are banded against the grade level of the **passage**, never the
+learner's own grade, so a twelve-year-old reading grade-2 material is
+measured against grade-2 norms. `needs_fluency_support` implements
+Hasbrouck & Tindal's published guidance exactly: ten or more words below
+the 50th percentile, averaged over **two unpracticed readings**. With fewer
+readings on record it withholds the judgment and says why, because one
+reading measures a day rather than a reader.
+
+Three rules govern how any of this is shown:
+
+- **Never show a percentile to a learner.** Bands are for the educator
+  report. To the learner: growth over time, never rank.
+- **Never celebrate speed.** A child who learns that reading should be fast
+  concludes they are bad at it the moment it isn't.
+- **Always report accuracy alongside rate.** High rate with low accuracy is
+  not fluency, and rate alone hides exactly the reader who is guessing
+  their way through a page at speed.
+
+## A note on ASR precision
+
+Child speech recognition still misrecognises correct productions. learnling
+therefore biases miscue detection toward **not** flagging — high precision
+over high recall — and drops candidate miscues below a configurable
+confidence threshold (`MISCUE_CONFIDENCE_THRESHOLD`, or the
+`LEARNLING_MISCUE_CONFIDENCE` environment variable).
+
+This is a deliberate design decision rather than a tuning default, because
+the two failure modes do not cost the same thing. A missed error costs one
+coaching opportunity out of many, and the next read will surface it again.
+A false *"you got that wrong"* costs a child confidence in their own
+reading and their trust in the tool — and no later correction takes that
+back. Given an asymmetry that steep, the detector should stay quiet when it
+is unsure.
+
+A suppressed miscue does not count against the learner's accuracy either;
+scoring them down for something we declined to raise would be the same
+accusation made quietly. The educator report shows how often the system
+stayed silent, so an adult can see it happening.
+
 ## Architecture
 
 Orchestrator on top; specialist agents per application; horizontal layers
@@ -173,9 +237,13 @@ design notes.
 ## Roadmap
 
 - [x] **M1 — Text-simulated reading loop:** orchestrator + reading agent +
-      age adaptation + safety + CLI demo (this build).
+      age adaptation + safety + CLI demo.
+- [x] **M1.5 — Skill/content separation and published fluency norms:** two
+      independent skill tracks, age-derived content tiers, passage selection
+      as an intersection, WCPM against Hasbrouck & Tindal, confidence-gated
+      miscue detection.
 - [ ] **M2 — Real audio:** whisper adapter; word timestamps → real fluency
-      metrics.
+      metrics, and per-word confidence feeding the miscue gate.
 - [ ] **M3 — Open child-ASR models:** adapters for open child-speech
       models (word + phoneme tracks) as open weights publish;
       phoneme-level decoding feedback.
