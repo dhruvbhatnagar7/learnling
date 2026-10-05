@@ -11,8 +11,8 @@
 the moment, and turns their mistakes into their next story.
 
 - **What it is:** a voice-only agent that sits beside a child reading from paper, the way a parent or teacher would.
-- **Who it's for:** children from age 4 up, including older students reading below grade level.
-- **What it gives adults:** a short summary of where each child is stuck, added up across a class.
+- **Who it's for:** children about 3 to 9, reading at home with a parent nearby.
+- **What it gives adults:** a rough picture of how home reading went, for each child and across a class.
 - **What works today:** the reading loop, in text simulation. [Try it in a minute](#quickstart).
 
 *-ling* as in duckling: a young learner, at whatever age the learning happens.
@@ -55,7 +55,8 @@ A useful tool here has to do three things:
 
 1. Make reading enjoyable again for children who have stopped wanting to do it.
 2. Notice when a reading child is stuck, and help in the moment.
-3. Tell the teacher where each child is weak, and add it up across the class.
+3. Give the teacher a rough picture of how home reading went for each child, and which skills many
+   children in the class are missing.
 
 <details>
 <summary><b>Read more:</b> why chat tutors struggle with young children, and the full reading figures</summary>
@@ -115,6 +116,9 @@ device at home already has it.
 > what the adult sees is about the reading ("ea words keep tripping her up"), not whether homework
 > got done.
 
+The teacher summary is extra information on top of what a teacher already sees in class. A miss at
+home can come from a noisy room or a tired child, not only a gap in skills.
+
 <details>
 <summary><b>Read more:</b> the rules behind each read</summary>
 
@@ -122,7 +126,8 @@ The first read is for accuracy. The agent keeps quiet while things are going fin
 moment before stepping in. When it is confident about a miscue it does what a reading teacher does:
 sounds the word out with the child, then asks them to read the whole sentence again and get it
 right. Fixing the word on its own isn't the point; the sentence has to come out clean. If sounding
-it out together doesn't work, the agent just says the word and moves on.
+it out together doesn't work, the agent just says the word and moves on. If the child misses several
+words in a row, the agent suggests a break instead of drilling.
 
 The second read is the same passage again, now familiar, for fluency. No interruptions this time,
 because stopping a child mid-sentence is not helpful. This is the read that produces words correct
@@ -147,7 +152,7 @@ one of two ways.
 
 | | Someone chose the text | The device writes the text |
 |---|---|---|
-| **When** | School assigned it, or the child picked a book | Nothing is assigned |
+| **When** | School assigned it, or the child picked a book | Nothing is assigned, and a parent or teacher approves the passage |
 | **How it arrives** | Synced from school, or a parent photographs the page | A language model writes a decodable from the child's target patterns and interests |
 | **Safeguard** | Words using untaught patterns are tagged; the agent just says them and they don't count as mistakes | A deterministic checker confirms every word uses taught patterns, or it's regenerated. The safety layer checks it too. |
 | **How the child reads it** | Paper, book or e-reader | Printed at home, or in a weekly pack printed at school |
@@ -168,8 +173,8 @@ at load time. The agent just tells the child those words instead of running a co
 and they don't count as mistakes.
 
 **2. The device generates the text.** Here nobody has assigned anything, and the device writes a
-passage for the child. The passage is a decodable, which is a short text written so that nearly
-every word uses only the phonics patterns the child has already been taught. A language model writes
+passage for the child. A parent or teacher approves it before the child reads it. The passage is a
+decodable, which is a short text written so that nearly every word uses only the phonics patterns the child has already been taught. A language model writes
 it using the child's target phonics patterns and their interests. A separate checker, deterministic
 rather than another model, then confirms every word only uses patterns the child has already been
 taught, or taught sight words. Language models are bad at hard constraints, so if the check fails
@@ -187,8 +192,8 @@ both worth designing for.
 
 ## Skill level and content level
 
-**A ten-year-old working on second grade phonics should get passages about things ten-year-olds care
-about, not a story written for six-year-olds.** So learnling tracks three things separately and never
+**An eight-year-old working on kindergarten phonics should get passages about things eight-year-olds
+care about, not a story written for four-year-olds.** So learnling tracks three things separately and never
 derives one from another:
 
 | Property | Covers | Set from |
@@ -231,16 +236,16 @@ comprehension questions. The words a child keeps missing decide which patterns g
 passage, and their interests decide what the passage is about. A passage about something the child
 cares about is more relatable, and the aim is that they read more because of it.
 
-What's different from the classroom tools is who picks the skill. Here nobody selects anything from
-a menu. The child's own mistakes across sessions choose the patterns for their next passage, without
-a teacher having to step in.
+What's different from the classroom tools is where the skill comes from. The child's own mistakes
+across sessions suggest the patterns for their next passage. By default the child reads the week's
+assigned text, and a parent or teacher approves any new passage before the child reads it.
 
 **The four rules, with examples.**
 
 1. **What a passage is about depends only on the child's age.** A child's reading skill never
-   changes the subjects and themes they are given. For example, a ten-year-old who is still working
-   on second grade phonics gets passages about things ten-year-olds care about, written with simple
-   spelling patterns. They are not given a story written for six-year-olds. In the code, the content
+   changes the subjects and themes they are given. For example, an eight-year-old who is still working
+   on kindergarten phonics gets passages about things eight-year-olds care about, written with simple
+   spelling patterns. They are not given a story written for four-year-olds. In the code, the content
    tier is calculated from age and cannot be set from any skill field.
 
 2. **When a child struggles, they get more help before they get easier material.** Suppose a child
@@ -455,6 +460,8 @@ passage built entirely out of a child's weak spots is miserable to read.
 | **A screener** | Tools such as DIBELS and Amira screen for reading difficulty and have validation studies behind them. learnling has none. |
 | **A diagnosis** | It shows an adult where a child's mistakes cluster. A teacher or specialist works out why. |
 | **A replacement for teaching** | Good phonics teaching uses letter tiles, tracing, gesture and sound. A voice device covers two of those four. |
+| **A replacement for reading together** | It's meant to support a parent reading with their child, not stand in for them. It isn't meant to save teachers time either. |
+| **For every child** | It isn't designed for students on IEPs who need 1:1 adult support. Children with speech-sound disorders will be misheard, and it isn't designed to judge their decoding. |
 
 ## Prior art
 
@@ -469,8 +476,8 @@ Several projects are already moving this space forward:
 | [Reading Universe](https://readinguniverse.org/article/explore-teaching-topics/word-recognition/phonics/decodable-texts-for-each-phonics-skill) | Free index of decodable texts by phonics skill, K-2 through teens |
 
 **Where learnling differs:** it's for home, screen-free, with paper in hand. One session covers
-accuracy, fluency and comprehension out loud. The personalisation loop closes around one child with
-no teacher step. The code is open, the recogniser is swappable, and it stays quiet when unsure.
+accuracy, fluency and comprehension out loud. The personalisation loop is built around one child,
+with a parent or teacher approving new passages. The code is open, the recogniser is swappable, and it stays quiet when unsure.
 
 **Where the others are ahead:** scale, research lineage, a validated screener, Spanish, and
 decodability engines tied to named programs. So learnling aims to fit alongside them. It isn't a
@@ -502,8 +509,8 @@ Both of the main commercial products cover more ground than this does. The diffe
 are about where it runs and how the loop closes. This is meant for home, screen-free, with paper in
 hand, where they're platforms a school buys. One session covers accuracy, fluency and
 comprehension on the same passage, with the questions asked and answered out loud. The
-personalisation loop closes around one child without a teacher step, and it learns the child's
-interests as well as their mistakes. The code is open and the recogniser is swappable. And it stays
+personalisation loop is built around one child, with a parent or teacher approving new passages,
+and it learns the child's interests as well as their mistakes. The code is open and the recogniser is swappable. And it stays
 quiet when it isn't sure.
 
 Where they're well ahead, which is scale, research lineage, a validated screener, Spanish, and
