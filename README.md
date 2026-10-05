@@ -11,7 +11,7 @@
 the moment, and turns their mistakes into their next story.
 
 - **What it is:** a voice-only agent that sits beside a child reading from paper, the way a parent or teacher would.
-- **Who it's for:** children about 3 to 9, reading at home with a parent nearby.
+- **Who it's for:** children from age 4 up, reading at home with a parent nearby.
 - **What it gives adults:** a rough picture of how home reading went, for each child and across a class.
 - **What works today:** the reading loop, in text simulation. [Try it in a minute](#quickstart).
 
