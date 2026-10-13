@@ -76,6 +76,55 @@ def is_near_miss(expected: str | None, heard: str | None) -> bool:
     return expected[0] == heard[0]
 
 
+def match_word_joins(
+    expected_words: list[str],
+    transcript_words: list[str],
+    word_confidences: list[float] | None = None,
+) -> tuple[list[str], list[float] | None]:
+    """Write heard words the way the page splits them.
+
+    "for ever" and "forever", or "in to" and "into", sound the same; the
+    recogniser picks one spelling and the page may use the other. Left alone,
+    that counts as a misreading the child never made. A heard word that is two
+    adjacent page words joined is split, and two heard words that join into a
+    page word are merged (keeping the lower confidence).
+    """
+    page = set(expected_words)
+    joined_pairs = {
+        a + b: (a, b) for a, b in zip(expected_words, expected_words[1:])
+    }
+    adjacent = set(zip(expected_words, expected_words[1:]))
+
+    def conf(index: int) -> float | None:
+        if word_confidences is None or not 0 <= index < len(word_confidences):
+            return None
+        return word_confidences[index]
+
+    words: list[str] = []
+    confidences: list[float | None] = []
+    i = 0
+    while i < len(transcript_words):
+        word = transcript_words[i]
+        nxt = transcript_words[i + 1] if i + 1 < len(transcript_words) else None
+        if word not in page and word in joined_pairs:
+            words += joined_pairs[word]
+            confidences += [conf(i), conf(i)]
+            i += 1
+        elif nxt is not None and word + nxt in page and (word, nxt) not in adjacent:
+            words.append(word + nxt)
+            pair = [c for c in (conf(i), conf(i + 1)) if c is not None]
+            confidences.append(min(pair) if pair else None)
+            i += 2
+        else:
+            words.append(word)
+            confidences.append(conf(i))
+            i += 1
+
+    if word_confidences is None:
+        return words, None
+    return words, confidences
+
+
 def align(
     expected_words: list[str],
     transcript_words: list[str],
@@ -87,6 +136,9 @@ def align(
     Each miscue carries the ASR confidence it was judged at, so a caller can
     decline to surface the ones the recogniser was unsure about.
     """
+    transcript_words, word_confidences = match_word_joins(
+        expected_words, transcript_words, word_confidences
+    )
 
     def heard_confidence(index: int) -> float | None:
         if word_confidences is not None and 0 <= index < len(word_confidences):

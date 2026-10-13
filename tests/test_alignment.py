@@ -50,3 +50,31 @@ def test_empty_transcript_is_all_omissions():
     miscues = align(expected, [])
     assert len(miscues) == 3
     assert all(m.kind == "omission" for m in miscues)
+
+
+def test_joined_word_is_not_a_miscue():
+    expected = normalize_words("to connect her parent for ever with the race")
+    transcript = normalize_words("to connect her parent forever with the race")
+    assert align(expected, transcript) == []
+
+
+def test_split_word_is_not_a_miscue():
+    expected = normalize_words("the frog jumped into the pond")
+    transcript = normalize_words("the frog jumped in to the pond")
+    assert align(expected, transcript) == []
+
+
+def test_joining_keeps_confidences_in_step():
+    expected = normalize_words("for ever and a day")
+    transcript = normalize_words("forever and a dog")
+    miscues = align(expected, transcript, word_confidences=[0.9, 0.9, 0.9, 0.4])
+    assert len(miscues) == 1
+    assert miscues[0].heard == "dog"
+    assert miscues[0].confidence == 0.4
+
+
+def test_real_misreading_next_to_a_page_pair_still_counts():
+    expected = normalize_words("in to the house")
+    transcript = normalize_words("in the house")
+    miscues = align(expected, transcript)
+    assert [m.kind for m in miscues] == ["omission"]
