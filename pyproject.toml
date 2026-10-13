@@ -24,6 +24,7 @@ dependencies = []
 
 [project.optional-dependencies]
 asr = ["faster-whisper>=1.0.0"]
+vosk = ["vosk>=0.3.45"]
 llm = ["anthropic>=0.40.0"]
 dev = ["pytest>=8.0.0"]
 

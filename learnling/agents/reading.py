@@ -13,6 +13,7 @@ import re
 import string
 from difflib import SequenceMatcher
 
+from learnling.fluency import compute_wcpm
 from learnling.models import AgentResponse, Assessment, Miscue, ReadingResult, Utterance
 
 _WHITESPACE = re.compile(r"\s+")
@@ -229,8 +230,14 @@ class ReadingAgent:
         accuracy = matched / len(expected_words) if expected_words else 0.0
 
         wpm = None
+        wcpm = None
         if utterance.duration_seconds:
             wpm = len(transcript_words) / (utterance.duration_seconds / 60.0)
+            # Same counting rule as accuracy: only errors we were willing to
+            # raise count against the reader.
+            wcpm = compute_wcpm(
+                len(expected_words), len(expected_words) - matched, utterance.duration_seconds
+            )
 
         assessment = classify(expected_words, miscues, accuracy, wpm)
 
@@ -242,6 +249,7 @@ class ReadingAgent:
             wpm=wpm,
             assessment=assessment,
             suppressed_miscues=suppressed,
+            wcpm=wcpm,
         )
 
     def handle(self, utterance: Utterance, context: dict) -> AgentResponse:
@@ -260,6 +268,7 @@ class ReadingAgent:
                 "miscue_counts": miscue_counts,
                 "accuracy": result.accuracy,
                 "wpm": result.wpm,
+                "wcpm": result.wcpm,
                 "assessment": result.assessment,
                 "suppressed_miscues": result.suppressed_miscues,
             },

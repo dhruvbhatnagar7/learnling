@@ -541,7 +541,9 @@ python -m learnling read --passage passages/sample_steamboat.txt --age 7 \
 python -m learnling ask --age 7 --simulate "why is the sky blue"
 ```
 
-Real audio (`--audio recording.wav`) needs the `asr` extra: `pip install "learnling[asr]"`. There's an
+Real audio (`--audio recording.wav`) needs the `asr` extra: `pip install "learnling[asr]"`, or
+`--asr vosk` to listen only for the passage's own words. `python -m learnling eval` scores a folder of
+labelled recordings. See [`docs/audio-evaluation.md`](docs/audio-evaluation.md). There's an
 optional LLM-backed Q&A and adaptation pass behind the `llm` extra. See `learnling/agents/learning.py`
 and `learnling/adaptation.py`.
 
@@ -565,7 +567,7 @@ See [`SAFETY.md`](SAFETY.md) for the full policy and the COPPA design notes.
 | Milestone | Status | What it covers |
 |---|---|---|
 | **M1, text-simulated reading loop** | Done | Orchestrator, reading agent, age adaptation, safety, CLI demo. This is what runs today. |
-| **M2, real audio** | Planned | Word-track adapter, timestamps into real fluency numbers, two-pass read end to end |
+| **M2, real audio** | In progress | Word-track adapter, timestamps into real fluency numbers, two-pass read end to end |
 | **M3, phoneme track** | Planned | Text prep, the miscue detector, scoring on every word with free recognition on flagged ones. Open phoneme checkpoints as the first adapter. |
 | **M4, generation loop** | Planned | Decodable generator driven by the learner profile, with the deterministic checker |
 | **M5, comprehension** | Planned | Spoken questions after the second read, tracked separately from decoding level |

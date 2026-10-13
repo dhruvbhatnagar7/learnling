@@ -2,6 +2,8 @@
 
     python -m learnling read --passage passages/sample_level1.txt --age 6 --simulate "the cat sat on teh mat"
     python -m learnling read --passage passages/sample_level1.txt --age 6 --audio recording.wav   # requires [asr]
+    python -m learnling read --passage passages/sample_level1.txt --age 6 --audio recording.wav --asr vosk --vosk-model PATH
+    python -m learnling eval path/to/test-set --asr vosk --vosk-model PATH
     python -m learnling ask --age 7 --simulate "why is the sky blue"
     python -m learnling demo
 """
@@ -28,16 +30,34 @@ def _print_miscue_table(miscues: list[Miscue]) -> None:
         print(f"  {m.kind:<14}{(m.expected or '-'):<14}{(m.heard or '-'):<14}{m.position}")
 
 
-def _get_utterance(args: argparse.Namespace) -> Utterance:
+def _build_asr(args: argparse.Namespace, passage_text: str | None):
+    """The real-audio adapter the flags ask for."""
+    backend = getattr(args, "asr", "whisper")
+    try:
+        if backend == "vosk":
+            from learnling.asr.vosk import VoskPassageASR
+
+            if passage_text is None:
+                print("error: --asr vosk needs a passage to listen for", file=sys.stderr)
+                raise SystemExit(1)
+            if not args.vosk_model:
+                print("error: --asr vosk needs --vosk-model PATH", file=sys.stderr)
+                raise SystemExit(1)
+            return VoskPassageASR(passage_text, model_path=args.vosk_model)
+
+        from learnling.asr.whisper import WhisperASR
+
+        return WhisperASR(model_size=getattr(args, "whisper_model", "base.en"))
+    except ImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+
+def _get_utterance(args: argparse.Namespace, passage_text: str | None = None) -> Utterance:
     if args.simulate is not None:
         return SimulatedASR().transcribe(args.simulate)
     if args.audio is not None:
-        try:
-            from learnling.asr.whisper import WhisperASR
-        except ImportError as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            raise SystemExit(1) from exc
-        return WhisperASR().transcribe(args.audio)
+        return _build_asr(args, passage_text).transcribe(args.audio)
     print("error: pass either --simulate TEXT or --audio PATH", file=sys.stderr)
     raise SystemExit(1)
 
@@ -56,7 +76,7 @@ def cmd_read(args: argparse.Namespace) -> None:
     orchestrator = Orchestrator(profile)
     orchestrator.load_passage(passage_text)
 
-    utterance = _get_utterance(args)
+    utterance = _get_utterance(args, passage_text)
     feedback = orchestrator.handle_utterance(utterance)
 
     result = orchestrator.session.events[-1]["report_notes"]["reading_result"]
@@ -68,6 +88,8 @@ def cmd_read(args: argparse.Namespace) -> None:
     print(f"Accuracy:   {result.accuracy:.0%}")
     if result.wpm is not None:
         print(f"WPM:        {result.wpm:.0f}")
+    if result.wcpm is not None:
+        print(f"WCPM:       {result.wcpm}")
     print(f"Assessment: {result.assessment}")
     print(f"\nlearnling says: {feedback}")
 
@@ -127,6 +149,31 @@ def cmd_demo(args: argparse.Namespace) -> None:
     print(generate_report(orchestrator.session))
 
 
+def cmd_eval(args: argparse.Namespace) -> None:
+    from learnling.evaluate import evaluate_folder, format_summary
+
+    summary = evaluate_folder(
+        args.folder,
+        lambda passage: _build_asr(args, passage),
+        confidence_threshold=args.confidence,
+    )
+    if not summary.cases:
+        print(f"error: no labelled recordings (*.json) in {args.folder}", file=sys.stderr)
+        raise SystemExit(1)
+    print(format_summary(summary))
+
+
+def _add_asr_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--asr",
+        choices=["whisper", "vosk"],
+        default="whisper",
+        help="Recogniser for --audio: open Whisper, or Vosk listening for the passage's words",
+    )
+    parser.add_argument("--whisper-model", default="base.en", help="Whisper model size (default base.en)")
+    parser.add_argument("--vosk-model", help="Folder of a Vosk small model (needed for --asr vosk)")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="learnling")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -137,6 +184,7 @@ def build_parser() -> argparse.ArgumentParser:
     read_parser.add_argument("--simulate", help="Simulated transcript text (no audio needed)")
     read_parser.add_argument("--audio", help="Path to an audio file (requires the 'asr' extra)")
     read_parser.add_argument("--save-report", help="Write a session report to this path")
+    _add_asr_flags(read_parser)
     read_parser.set_defaults(func=cmd_read)
 
     ask_parser = subparsers.add_parser("ask", help="Ask learnling a question")
@@ -148,6 +196,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     demo_parser = subparsers.add_parser("demo", help="Run a scripted demo session, no setup needed")
     demo_parser.set_defaults(func=cmd_demo)
+
+    eval_parser = subparsers.add_parser(
+        "eval", help="Score a folder of labelled recordings (see docs/audio-evaluation.md)"
+    )
+    eval_parser.add_argument("folder", help="Folder of .wav recordings with .json labels")
+    eval_parser.add_argument(
+        "--confidence", type=float, help="Override the miscue confidence threshold"
+    )
+    _add_asr_flags(eval_parser)
+    eval_parser.set_defaults(func=cmd_eval)
 
     return parser
 
