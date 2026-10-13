@@ -18,6 +18,23 @@ from learnling.models import AgentResponse, Assessment, Miscue, ReadingResult, U
 
 _WHITESPACE = re.compile(r"\s+")
 
+_ONES = (
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen "
+    "fourteen fifteen sixteen seventeen eighteen nineteen"
+).split()
+_TENS = "twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+
+def _number_words(token: str) -> list[str]:
+    """Spell out 0-99, since recognisers often write "nine" as "9"."""
+    if not token.isdigit() or len(token) > 2:
+        return [token]
+    n = int(token)
+    if n < 20:
+        return [_ONES[n]]
+    tens, ones = divmod(n, 10)
+    return [_TENS[tens - 2]] + ([_ONES[ones]] if ones else [])
+
 #: Confidence a candidate miscue must reach before the child hears about it.
 #:
 #: Miscue detection here is deliberately biased toward *not* flagging: high
@@ -50,7 +67,12 @@ def configured_confidence_threshold() -> float:
 def normalize_words(text: str) -> list[str]:
     """Lowercase, strip punctuation, split into words."""
     stripped = text.translate(str.maketrans("", "", string.punctuation))
-    return [w for w in _WHITESPACE.split(stripped.lower().strip()) if w]
+    return [
+        word
+        for token in _WHITESPACE.split(stripped.lower().strip())
+        if token
+        for word in _number_words(token)
+    ]
 
 
 def edit_distance(a: str, b: str) -> int:

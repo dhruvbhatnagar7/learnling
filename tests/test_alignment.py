@@ -78,3 +78,9 @@ def test_real_misreading_next_to_a_page_pair_still_counts():
     transcript = normalize_words("in the house")
     miscues = align(expected, transcript)
     assert [m.kind for m in miscues] == ["omission"]
+
+
+def test_digits_match_spelled_out_numbers():
+    expected = normalize_words("nine three two and twenty one")
+    transcript = normalize_words("9 3 2 and 21")
+    assert align(expected, transcript) == []
