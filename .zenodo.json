@@ -1,0 +1,10 @@
+{
+  "title": "learnling: an open, screen-free reading companion that listens while a child reads aloud",
+  "upload_type": "software",
+  "description": "Open-source prototype of a home reading companion for children aged 4 and up. Includes a recorded-audio pipeline, an evaluation harness and dated results (docs/evaluation-method.md, results/).",
+  "creators": [
+    {"name": "Bhatnagar, Dhruv"}
+  ],
+  "license": "Apache-2.0",
+  "keywords": ["education", "literacy", "oral reading fluency", "children's speech recognition"]
+}

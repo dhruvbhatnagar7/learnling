@@ -543,7 +543,9 @@ python -m learnling ask --age 7 --simulate "why is the sky blue"
 
 Real audio (`--audio recording.wav`) needs the `asr` extra: `pip install "learnling[asr]"`, or
 `--asr vosk` to listen only for the passage's own words. `python -m learnling eval` scores a folder of
-labelled recordings. See [`docs/audio-evaluation.md`](docs/audio-evaluation.md). There's an
+labelled recordings, and `python -m learnling record` reads into the microphone. See
+[`docs/audio-evaluation.md`](docs/audio-evaluation.md). How accurate it is, and how that was measured:
+[`docs/evaluation-method.md`](docs/evaluation-method.md). There's an
 optional LLM-backed Q&A and adaptation pass behind the `llm` extra. See `learnling/agents/learning.py`
 and `learnling/adaptation.py`.
 

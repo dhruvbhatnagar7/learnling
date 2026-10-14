@@ -1,6 +1,6 @@
 # Trying learnling with real audio
 
-This is the first step of the README's M2 milestone: a recorded reading goes in, and the same report the
+This is the README's M2 milestone: a recorded reading goes in, and the same report the
 simulated demo produces comes out. Nothing here is live yet, and none of it has been tested with
 children.
 
@@ -25,6 +25,18 @@ python -m learnling read --passage passages/sample_level1.txt --age 6 --audio re
 
 Vosk wants 16-bit mono WAV. To convert a phone recording:
 `ffmpeg -i reading.m4a -ac 1 -ar 16000 -sample_fmt s16 reading.wav`
+
+## Recording yourself
+
+```
+pip install "learnling[vosk,mic]"
+python -m learnling record --passage passages/sample_level1.txt --asr vosk \
+    --vosk-model ~/models/vosk-model-small-en-us-0.15 --save-to my-test-set
+```
+
+Press Enter, read the passage aloud, press Enter again. You see the score straight away. With `--save-to`,
+the recording and a label file are kept in that folder; open the label and type what you actually said
+into `said`. Without `--save-to`, nothing is kept.
 
 ## Measuring it
 
