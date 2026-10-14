@@ -7,9 +7,12 @@ in the pipeline is designed with them in mind.
 
 ## Data handling
 
-- **No audio retention.** Audio is never written to disk by this package.
-  ASR adapters receive audio in-memory (a path or bytes you provide) and
-  return a transcript; learnling itself does not record or store it.
+- **No audio retention.** Audio is not kept by this package. ASR adapters
+  receive audio (a path or bytes you provide) and return a transcript.
+  `learnling record` holds the microphone recording in a temporary file only
+  while it is scored, then deletes it. The one exception is
+  `learnling record --save-to FOLDER`, which an adult passes on purpose to
+  keep a recording for testing accuracy; see `docs/audio-evaluation.md`.
 - **Session-only memory.** Transcripts and utterance text live only in the
   in-memory `Session` object for the lifetime of the process. Nothing is
   written to disk unless you explicitly ask for it.

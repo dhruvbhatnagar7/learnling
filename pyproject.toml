@@ -26,6 +26,7 @@ dependencies = []
 # faster-whisper 1.2.1 passes an argument PyAV 19 removed; drop the cap once it is fixed upstream.
 asr = ["faster-whisper>=1.0.0", "av<19"]
 vosk = ["vosk>=0.3.45"]
+mic = ["sounddevice>=0.4.6"]
 llm = ["anthropic>=0.40.0"]
 dev = ["pytest>=8.0.0"]
 

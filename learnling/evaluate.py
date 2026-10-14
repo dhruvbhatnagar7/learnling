@@ -66,6 +66,8 @@ class CaseResult:
 @dataclass
 class EvalSummary:
     cases: list[CaseResult] = field(default_factory=list)
+    #: Label files skipped because `said` is still empty.
+    unlabelled: list[str] = field(default_factory=list)
 
     @property
     def correct_words(self) -> int:
@@ -143,6 +145,10 @@ def evaluate_folder(
     summary = EvalSummary()
     for label_path in sorted(Path(folder).glob("*.json")):
         passage, said, audio = load_case(label_path)
+        if not said.strip():
+            # A label `learnling record` wrote that nobody has filled in yet.
+            summary.unlabelled.append(label_path.name)
+            continue
         summary.cases.append(
             evaluate_case(
                 label_path.stem,
@@ -180,4 +186,9 @@ def format_summary(summary: EvalSummary) -> str:
         "false = flagged a word the reader got right. quiet = possible errors held back"
         " because the recogniser was unsure.",
     ]
+    if summary.unlabelled:
+        lines.append(
+            f"Skipped {len(summary.unlabelled)} recording(s) with no \"said\" typed in yet: "
+            + ", ".join(summary.unlabelled)
+        )
     return "\n".join(lines)

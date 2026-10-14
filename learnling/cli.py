@@ -3,6 +3,7 @@
     python -m learnling read --passage passages/sample_level1.txt --age 6 --simulate "the cat sat on teh mat"
     python -m learnling read --passage passages/sample_level1.txt --age 6 --audio recording.wav   # requires [asr]
     python -m learnling read --passage passages/sample_level1.txt --age 6 --audio recording.wav --asr vosk --vosk-model PATH
+    python -m learnling record --passage passages/sample_level1.txt --asr vosk --vosk-model PATH --save-to my-readings
     python -m learnling eval path/to/test-set --asr vosk --vosk-model PATH
     python -m learnling ask --age 7 --simulate "why is the sky blue"
     python -m learnling demo
@@ -77,8 +78,12 @@ def cmd_read(args: argparse.Namespace) -> None:
     orchestrator.load_passage(passage_text)
 
     utterance = _get_utterance(args, passage_text)
-    feedback = orchestrator.handle_utterance(utterance)
+    _score_and_print(orchestrator, passage_text, utterance)
+    _maybe_save_report(orchestrator, args.save_report)
 
+
+def _score_and_print(orchestrator: Orchestrator, passage_text: str, utterance: Utterance) -> None:
+    feedback = orchestrator.handle_utterance(utterance)
     result = orchestrator.session.events[-1]["report_notes"]["reading_result"]
 
     print(f"Passage:    {passage_text}")
@@ -93,6 +98,32 @@ def cmd_read(args: argparse.Namespace) -> None:
     print(f"Assessment: {result.assessment}")
     print(f"\nlearnling says: {feedback}")
 
+
+def cmd_record(args: argparse.Namespace) -> None:
+    from learnling.record import record_until_enter, save_for_evaluation, transcribe_pcm
+
+    passage_text = Path(args.passage).read_text().strip()
+    asr = _build_asr(args, passage_text)
+    orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
+    orchestrator.load_passage(passage_text)
+
+    print(f"Passage to read:\n\n  {passage_text}\n")
+    input("Press Enter, then start reading. ")
+    try:
+        pcm = record_until_enter()
+    except ImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+    print()
+    _score_and_print(orchestrator, passage_text, transcribe_pcm(asr, pcm))
+
+    if args.save_to:
+        label = save_for_evaluation(args.save_to, passage_text, pcm)
+        print(
+            f"\nSaved the recording for evaluation. Open {label} and type what was "
+            "actually read into \"said\", then run: learnling eval " + str(args.save_to)
+        )
     _maybe_save_report(orchestrator, args.save_report)
 
 
@@ -186,6 +217,20 @@ def build_parser() -> argparse.ArgumentParser:
     read_parser.add_argument("--save-report", help="Write a session report to this path")
     _add_asr_flags(read_parser)
     read_parser.set_defaults(func=cmd_read)
+
+    record_parser = subparsers.add_parser(
+        "record", help="Read a passage aloud into the microphone and score it (needs the 'mic' extra)"
+    )
+    record_parser.add_argument("--passage", required=True, help="Path to a passage text file")
+    record_parser.add_argument("--age", type=int, default=8, help="Reader's age in years (default 8)")
+    record_parser.add_argument(
+        "--save-to",
+        help="Keep the recording and a label file in this folder, for learnling eval. "
+        "Without it, no audio is kept.",
+    )
+    record_parser.add_argument("--save-report", help="Write a session report to this path")
+    _add_asr_flags(record_parser)
+    record_parser.set_defaults(func=cmd_record)
 
     ask_parser = subparsers.add_parser("ask", help="Ask learnling a question")
     ask_parser.add_argument("--age", type=int, required=True, help="Child's age in years")
