@@ -27,6 +27,7 @@ dependencies = []
 asr = ["faster-whisper>=1.0.0", "av<19"]
 vosk = ["vosk>=0.3.45"]
 mic = ["sounddevice>=0.4.6"]
+live = ["sherpa-onnx>=1.10.0", "numpy", "sounddevice>=0.4.6"]
 llm = ["anthropic>=0.40.0"]
 dev = ["pytest>=8.0.0"]
 

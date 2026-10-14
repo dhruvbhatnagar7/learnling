@@ -1,0 +1,28 @@
+recording                words  errors  caught  missed  false  quiet  wcpm
+ls-0-clean                  18       0       0       0      0      4   262
+ls-0-skip                   19       1       0       1      0      5   276
+ls-0-sub-close              18       1       0       1      0      5   262
+ls-0-sub-far                18       1       0       1      0      5   262
+ls-0-sub-inpassage          18       1       0       1      0      5   262
+ls-0-two-errors             19       2       1       1      0      5   262
+ls-1-clean                  48       0       0       0      0      2   186
+ls-1-skip                   49       1       0       1      0      3   190
+ls-1-sub-close              48       1       0       1      0      3   186
+ls-1-sub-far                48       1       0       1      0      3   186
+ls-1-two-errors             48       2       1       1      0      3   182
+ls-2830-3980-0043-clean      3       0       0       0      0      2   340
+ls-2830-3980-0043-sub-close     3       1       0       1      0      3   340
+ls-4507-16021-0012-clean     7       0       0       0      0      0   205
+ls-4507-16021-0012-sub-far     7       1       1       0      0      0   176
+ls-8455-210777-0068-clean     6       0       0       0      0      0   208
+ls-8455-210777-0068-skip     7       1       0       1      0      1   243
+ls-8k-clean                 11       0       0       0      0      3   228
+ls-8k-skip                  12       1       0       1      0      4   249
+ls-8k-sub-close             11       1       0       1      0      4   228
+ls-8k-sub-far               11       1       0       1      0      3   228
+
+Recordings:            21
+False-accusation rate: 0%  (correct words learnling called wrong, of 412)
+Catch rate:            18%  (real errors learnling flagged, of 17)
+
+false = flagged a word the reader got right. quiet = possible errors held back because the recogniser was unsure.

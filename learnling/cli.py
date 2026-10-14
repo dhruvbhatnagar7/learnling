@@ -46,6 +46,14 @@ def _build_asr(args: argparse.Namespace, passage_text: str | None):
                 raise SystemExit(1)
             return VoskPassageASR(passage_text, model_path=args.vosk_model)
 
+        if backend == "sherpa":
+            from learnling.asr.sherpa import SherpaStreamingASR
+
+            if not getattr(args, "model", None):
+                print("error: --asr sherpa needs --model PATH", file=sys.stderr)
+                raise SystemExit(1)
+            return SherpaStreamingASR(args.model)
+
         from learnling.asr.whisper import WhisperASR
 
         return WhisperASR(model_size=getattr(args, "whisper_model", "base.en"))
@@ -194,15 +202,86 @@ def cmd_eval(args: argparse.Namespace) -> None:
     print(format_summary(summary))
 
 
+def cmd_live(args: argparse.Namespace) -> None:
+    from learnling.asr.sherpa import SherpaStreamingASR
+    from learnling import live, live_io
+
+    passage_text = Path(args.passage).read_text().strip()
+    try:
+        recognizer = SherpaStreamingASR(args.model)
+        voice = live_io.OfflineVoice(args.voice) if args.voice else None
+    except ImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+    timeline: list[bytes] | None = [] if args.save_demo else None
+    light = live_io.ListeningLight(args.led_pin)
+    speaker = live_io.Speaker(voice, play=not args.audio, light=light, timeline=timeline)
+    max_seconds = max(30.0, len(passage_text.split()) * 3.0)
+
+    def read(label: str, path: str | None):
+        if path:
+            chunks = live_io.file_chunks(path)
+        else:
+            input(f"{label}: press Enter, then start reading. Press Enter again if you need to stop. ")
+            chunks = live_io.mic_chunks(speaker, max_seconds)
+        light.on()
+        if timeline is not None:
+            chunks = live_io.recorded(chunks, timeline)
+        return chunks
+
+    print(f"Passage:\n\n  {passage_text}\n")
+    first_audio = args.audio[0] if args.audio else None
+    second_audio = args.audio[-1] if args.audio else None
+    result = live.run_session(
+        passage_text,
+        recognizer,
+        read("First read", first_audio),
+        _Lazy(lambda: read("Second read", second_audio)),
+        speaker,
+        age_years=args.age,
+    )
+    light.off()
+
+    print("\nFor the adult:")
+    if result.first_read_events:
+        for event in result.first_read_events:
+            what = "hint" if event.kind == "hint" else "said the word"
+            print(f"  first read, {event.at_seconds:4.1f}s: {what} for '{event.word}'")
+    else:
+        print("  first read: no help needed")
+    second = result.orchestrator.session.events[-1]["report_notes"]["reading_result"]
+    print(f"  second read: accuracy {second.accuracy:.0%}, words correct per minute {second.wcpm or '-'}")
+    if second.miscues:
+        print("  words to practise: " + ", ".join(sorted({m.expected for m in second.miscues if m.expected})))
+
+    if args.save_demo:
+        live_io.write_demo(args.save_demo, timeline)
+        print(f"\nWrote the reading and learnling's voice to {args.save_demo}")
+    _maybe_save_report(result.orchestrator, args.save_report)
+
+
+class _Lazy:
+    """An iterable built only when first iterated, so the second read waits its turn."""
+
+    def __init__(self, make):
+        self._make = make
+
+    def __iter__(self):
+        return iter(self._make())
+
+
 def _add_asr_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--asr",
-        choices=["whisper", "vosk"],
+        choices=["whisper", "vosk", "sherpa"],
         default="whisper",
-        help="Recogniser for --audio: open Whisper, or Vosk listening for the passage's words",
+        help="Recogniser for --audio: open Whisper, Vosk listening for the passage's words, "
+        "or a sherpa-onnx streaming model",
     )
     parser.add_argument("--whisper-model", default="base.en", help="Whisper model size (default base.en)")
     parser.add_argument("--vosk-model", help="Folder of a Vosk small model (needed for --asr vosk)")
+    parser.add_argument("--model", help="Folder of a sherpa-onnx streaming model (needed for --asr sherpa)")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -241,6 +320,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     demo_parser = subparsers.add_parser("demo", help="Run a scripted demo session, no setup needed")
     demo_parser.set_defaults(func=cmd_demo)
+
+    live_parser = subparsers.add_parser(
+        "live", help="Listen while someone reads, hint when stuck, then a quiet second read"
+    )
+    live_parser.add_argument("--passage", required=True, help="Path to a passage text file")
+    live_parser.add_argument("--model", required=True, help="Folder of a sherpa-onnx streaming model")
+    live_parser.add_argument("--voice", help="Folder of a sherpa-onnx VITS voice; without it, learnling prints instead of speaking")
+    live_parser.add_argument("--age", type=int, default=8, help="Reader's age in years (default 8)")
+    live_parser.add_argument(
+        "--audio", action="append",
+        help="Use a recording instead of the microphone (give twice for first and second read)",
+    )
+    live_parser.add_argument("--save-demo", help="Write the reading plus learnling's voice to this WAV")
+    live_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
+    live_parser.add_argument("--save-report", help="Write a session report to this path")
+    live_parser.set_defaults(func=cmd_live)
 
     eval_parser = subparsers.add_parser(
         "eval", help="Score a folder of labelled recordings (see docs/audio-evaluation.md)"
