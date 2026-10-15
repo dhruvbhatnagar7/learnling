@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "learnling"
-version = "0.1.0"
+version = "0.2.0"
 description = "An open, screen-free reading companion that listens while a child reads aloud."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,7 +23,13 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-asr = ["faster-whisper>=1.0.0"]
+# faster-whisper 1.2.1 passes an argument PyAV 19 removed; drop the cap once it is fixed upstream.
+asr = ["faster-whisper>=1.0.0", "av<19"]
+vosk = ["vosk>=0.3.45"]
+mic = ["sounddevice>=0.4.6"]
+live = ["sherpa-onnx>=1.10.0", "numpy", "sounddevice>=0.4.6"]
+# Experimental children's sound model (drivendata/pasketti-phonetic); runs on CPU.
+phonetic = ["transformers==4.57.6", "torch", "librosa", "cmudict"]
 llm = ["anthropic>=0.40.0"]
 dev = ["pytest>=8.0.0"]
 

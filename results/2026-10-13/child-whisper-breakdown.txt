@@ -1,0 +1,9 @@
+age 10           false 17/420 = 4%   caught 24/32 = 75%
+age 6            false 52/658 = 8%   caught 35/82 = 43%
+age 7            false 70/689 = 10%   caught 29/77 = 38%
+age 8            false 15/390 = 4%   caught 22/41 = 54%
+age 9            false 40/685 = 6%   caught 42/68 = 62%
+kind clean       false 102/1521 = 7%
+kind close       false 21/402 = 5%   caught 58/100 = 58%
+kind different   false 27/428 = 6%   caught 46/100 = 46%
+kind skip        false 44/491 = 9%   caught 48/100 = 48%

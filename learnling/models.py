@@ -169,6 +169,9 @@ class ReadingResult:
     #: enough to raise them. Surfaced in the educator report — an adult should
     #: be able to see that the system stayed quiet, and how often.
     suppressed_miscues: int = 0
+    #: Words correct per minute, the measure the fluency norms are stated in.
+    #: Only known when the ASR reports how long the reading took.
+    wcpm: int | None = None
 
 
 @dataclass

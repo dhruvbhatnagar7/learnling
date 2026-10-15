@@ -1,7 +1,7 @@
 """Session report for the adult in the loop: stats, not raw transcripts.
 
 By default the report only includes what's needed for a teacher or parent
-to see progress — accuracy, words-per-minute, miscue counts, assessment
+to see progress — accuracy, words-per-minute, words correct per minute, miscue counts, assessment
 categories, how many questions came up — matching the data policy in
 SAFETY.md. Raw transcript text is only included if the caller explicitly
 opts in.
@@ -27,6 +27,7 @@ def build_summary(session: Session, include_transcripts: bool = False) -> dict:
             {
                 "accuracy": e["report_notes"].get("accuracy"),
                 "wpm": e["report_notes"].get("wpm"),
+                "wcpm": e["report_notes"].get("wcpm"),
                 "assessment": e["report_notes"].get("assessment"),
                 "miscue_counts": e["report_notes"].get("miscue_counts"),
                 "suppressed_miscues": e["report_notes"].get("suppressed_miscues"),
@@ -58,15 +59,16 @@ def to_markdown(summary: dict) -> str:
     if summary["reading_stats"]:
         lines.append("## Reading")
         lines.append("")
-        lines.append("| # | Accuracy | WPM | Assessment | Miscues | Not raised |")
-        lines.append("|---|----------|-----|------------|---------|------------|")
+        lines.append("| # | Accuracy | WPM | WCPM | Assessment | Miscues | Not raised |")
+        lines.append("|---|----------|-----|------|------------|---------|------------|")
         for i, stat in enumerate(summary["reading_stats"], start=1):
             accuracy = f"{stat['accuracy']:.0%}" if stat["accuracy"] is not None else "-"
             wpm = f"{stat['wpm']:.0f}" if stat["wpm"] is not None else "-"
+            wcpm = str(stat["wcpm"]) if stat.get("wcpm") is not None else "-"
             miscues = ", ".join(f"{k}: {v}" for k, v in (stat["miscue_counts"] or {}).items()) or "none"
             suppressed = stat.get("suppressed_miscues") or 0
             lines.append(
-                f"| {i} | {accuracy} | {wpm} | {stat['assessment']} | {miscues} | {suppressed} |"
+                f"| {i} | {accuracy} | {wpm} | {wcpm} | {stat['assessment']} | {miscues} | {suppressed} |"
             )
         lines.append("")
         lines.append(

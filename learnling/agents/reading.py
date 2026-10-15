@@ -13,9 +13,27 @@ import re
 import string
 from difflib import SequenceMatcher
 
+from learnling.fluency import compute_wcpm
 from learnling.models import AgentResponse, Assessment, Miscue, ReadingResult, Utterance
 
 _WHITESPACE = re.compile(r"\s+")
+
+_ONES = (
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen "
+    "fourteen fifteen sixteen seventeen eighteen nineteen"
+).split()
+_TENS = "twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+
+def _number_words(token: str) -> list[str]:
+    """Spell out 0-99, since recognisers often write "nine" as "9"."""
+    if not token.isdigit() or len(token) > 2:
+        return [token]
+    n = int(token)
+    if n < 20:
+        return [_ONES[n]]
+    tens, ones = divmod(n, 10)
+    return [_TENS[tens - 2]] + ([_ONES[ones]] if ones else [])
 
 #: Confidence a candidate miscue must reach before the child hears about it.
 #:
@@ -49,7 +67,12 @@ def configured_confidence_threshold() -> float:
 def normalize_words(text: str) -> list[str]:
     """Lowercase, strip punctuation, split into words."""
     stripped = text.translate(str.maketrans("", "", string.punctuation))
-    return [w for w in _WHITESPACE.split(stripped.lower().strip()) if w]
+    return [
+        word
+        for token in _WHITESPACE.split(stripped.lower().strip())
+        if token
+        for word in _number_words(token)
+    ]
 
 
 def edit_distance(a: str, b: str) -> int:
@@ -75,6 +98,55 @@ def is_near_miss(expected: str | None, heard: str | None) -> bool:
     return expected[0] == heard[0]
 
 
+def match_word_joins(
+    expected_words: list[str],
+    transcript_words: list[str],
+    word_confidences: list[float] | None = None,
+) -> tuple[list[str], list[float] | None]:
+    """Write heard words the way the page splits them.
+
+    "for ever" and "forever", or "in to" and "into", sound the same; the
+    recogniser picks one spelling and the page may use the other. Left alone,
+    that counts as a misreading the child never made. A heard word that is two
+    adjacent page words joined is split, and two heard words that join into a
+    page word are merged (keeping the lower confidence).
+    """
+    page = set(expected_words)
+    joined_pairs = {
+        a + b: (a, b) for a, b in zip(expected_words, expected_words[1:])
+    }
+    adjacent = set(zip(expected_words, expected_words[1:]))
+
+    def conf(index: int) -> float | None:
+        if word_confidences is None or not 0 <= index < len(word_confidences):
+            return None
+        return word_confidences[index]
+
+    words: list[str] = []
+    confidences: list[float | None] = []
+    i = 0
+    while i < len(transcript_words):
+        word = transcript_words[i]
+        nxt = transcript_words[i + 1] if i + 1 < len(transcript_words) else None
+        if word not in page and word in joined_pairs:
+            words += joined_pairs[word]
+            confidences += [conf(i), conf(i)]
+            i += 1
+        elif nxt is not None and word + nxt in page and (word, nxt) not in adjacent:
+            words.append(word + nxt)
+            pair = [c for c in (conf(i), conf(i + 1)) if c is not None]
+            confidences.append(min(pair) if pair else None)
+            i += 2
+        else:
+            words.append(word)
+            confidences.append(conf(i))
+            i += 1
+
+    if word_confidences is None:
+        return words, None
+    return words, confidences
+
+
 def align(
     expected_words: list[str],
     transcript_words: list[str],
@@ -86,6 +158,9 @@ def align(
     Each miscue carries the ASR confidence it was judged at, so a caller can
     decline to surface the ones the recogniser was unsure about.
     """
+    transcript_words, word_confidences = match_word_joins(
+        expected_words, transcript_words, word_confidences
+    )
 
     def heard_confidence(index: int) -> float | None:
         if word_confidences is not None and 0 <= index < len(word_confidences):
@@ -229,8 +304,14 @@ class ReadingAgent:
         accuracy = matched / len(expected_words) if expected_words else 0.0
 
         wpm = None
+        wcpm = None
         if utterance.duration_seconds:
             wpm = len(transcript_words) / (utterance.duration_seconds / 60.0)
+            # Same counting rule as accuracy: only errors we were willing to
+            # raise count against the reader.
+            wcpm = compute_wcpm(
+                len(expected_words), len(expected_words) - matched, utterance.duration_seconds
+            )
 
         assessment = classify(expected_words, miscues, accuracy, wpm)
 
@@ -242,6 +323,7 @@ class ReadingAgent:
             wpm=wpm,
             assessment=assessment,
             suppressed_miscues=suppressed,
+            wcpm=wcpm,
         )
 
     def handle(self, utterance: Utterance, context: dict) -> AgentResponse:
@@ -260,6 +342,7 @@ class ReadingAgent:
                 "miscue_counts": miscue_counts,
                 "accuracy": result.accuracy,
                 "wpm": result.wpm,
+                "wcpm": result.wcpm,
                 "assessment": result.assessment,
                 "suppressed_miscues": result.suppressed_miscues,
             },
