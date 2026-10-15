@@ -6,6 +6,7 @@ authors:
   - family-names: Bhatnagar
     given-names: Dhruv
 version: 0.2.0
+doi: 10.5281/zenodo.23382880
 license: Apache-2.0
 repository-code: "https://github.com/dhruvbhatnagar7/learnling"
 keywords:

@@ -4,6 +4,7 @@
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Status: v0](https://img.shields.io/badge/status-v0-orange)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23382880.svg)](https://doi.org/10.5281/zenodo.23382880)
 
 ![A child on a living room sofa reads a printed page aloud to a small speaker on the side table](docs/learnling-at-home.svg)
 
