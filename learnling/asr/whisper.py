@@ -49,6 +49,9 @@ class WhisperASR:
 
         segments, _info = self._model.transcribe(
             audio,
+            # Multilingual models (such as children's fine-tunes of whisper-small)
+            # otherwise guess the language, and an accent can tip the guess.
+            language="en",
             word_timestamps=True,
             vad_filter=True,
             condition_on_previous_text=False,

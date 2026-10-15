@@ -28,6 +28,8 @@ asr = ["faster-whisper>=1.0.0", "av<19"]
 vosk = ["vosk>=0.3.45"]
 mic = ["sounddevice>=0.4.6"]
 live = ["sherpa-onnx>=1.10.0", "numpy", "sounddevice>=0.4.6"]
+# Experimental children's sound model (drivendata/pasketti-phonetic); runs on CPU.
+phonetic = ["transformers==4.57.6", "torch", "librosa", "cmudict"]
 llm = ["anthropic>=0.40.0"]
 dev = ["pytest>=8.0.0"]
 

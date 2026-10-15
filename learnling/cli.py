@@ -54,6 +54,18 @@ def _build_asr(args: argparse.Namespace, passage_text: str | None):
                 raise SystemExit(1)
             return SherpaStreamingASR(args.model)
 
+        if backend == "pasketti":
+            from learnling.asr.phonetic import PaskettiPhoneticASR, PhoneticModel
+
+            if passage_text is None:
+                print("error: --asr pasketti needs a passage to check against", file=sys.stderr)
+                raise SystemExit(1)
+            if not hasattr(args, "_phonetic_model"):
+                args._phonetic_model = PhoneticModel(getattr(args, "model", None) or "drivendata/pasketti-phonetic")
+            return PaskettiPhoneticASR(
+                passage_text, model=args._phonetic_model, max_word_error=args.max_word_error
+            )
+
         from learnling.asr.whisper import WhisperASR
 
         return WhisperASR(model_size=getattr(args, "whisper_model", "base.en"))
@@ -274,14 +286,25 @@ class _Lazy:
 def _add_asr_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--asr",
-        choices=["whisper", "vosk", "sherpa"],
+        choices=["whisper", "vosk", "sherpa", "pasketti"],
         default="whisper",
         help="Recogniser for --audio: open Whisper, Vosk listening for the passage's words, "
-        "or a sherpa-onnx streaming model",
+        "a sherpa-onnx streaming model, or the pasketti-phonetic children's sound model (experimental)",
     )
-    parser.add_argument("--whisper-model", default="base.en", help="Whisper model size (default base.en)")
+    parser.add_argument(
+        "--whisper-model", default="base.en",
+        help="Whisper model size, or the folder of a converted faster-whisper model (default base.en)",
+    )
     parser.add_argument("--vosk-model", help="Folder of a Vosk small model (needed for --asr vosk)")
-    parser.add_argument("--model", help="Folder of a sherpa-onnx streaming model (needed for --asr sherpa)")
+    parser.add_argument(
+        "--model",
+        help="Folder of a sherpa-onnx streaming model (needed for --asr sherpa); "
+        "for --asr pasketti, another copy of the model",
+    )
+    parser.add_argument(
+        "--max-word-error", type=float, default=0.5,
+        help="--asr pasketti: share of a word's sounds that may be wrong before it counts as misread (default 0.5)",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
