@@ -172,6 +172,9 @@ class ReadingResult:
     #: Words correct per minute, the measure the fluency norms are stated in.
     #: Only known when the ASR reports how long the reading took.
     wcpm: int | None = None
+    #: The candidate miscues behind `suppressed_miscues`, kept so the adult's
+    #: report can list them as "not sure" rather than only counting them.
+    held_back: list[Miscue] = field(default_factory=list)
 
 
 @dataclass

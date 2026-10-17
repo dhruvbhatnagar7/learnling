@@ -324,6 +324,7 @@ class ReadingAgent:
             assessment=assessment,
             suppressed_miscues=suppressed,
             wcpm=wcpm,
+            held_back=[m for m in candidates if not any(m is r for r in miscues)],
         )
 
     def handle(self, utterance: Utterance, context: dict) -> AgentResponse:

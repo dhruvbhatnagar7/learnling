@@ -19,7 +19,9 @@ in the pipeline is designed with them in mind.
 - **Reports over transcripts.** The `--save-report` CLI flag writes a
   session summary (accuracy, words-per-minute, miscue counts, assessment
   categories) — not raw transcripts — so an adult can review progress
-  without a recording of what the child said.
+  without a recording of what the child said. It lists the passage words
+  that were missed, and for a misread word the single word heard in its
+  place, so the adult knows what to practise.
 - **No PII collection.** learnling does not ask for or store a child's
   name, address, school, or any other personal identifier. Attempts to
   solicit that information from the agent (e.g. "what's your address?")
