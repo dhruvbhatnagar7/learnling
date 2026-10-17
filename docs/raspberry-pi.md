@@ -17,6 +17,12 @@ speaker and a listening light. This guide has not been tried on a Pi yet; expect
 
 About $130 to $170 in total.
 
+**Cheaper:** a used Raspberry Pi 4 with 4 GB (2 GB is enough for record-only sessions) instead of the Pi 5,
+for about $35 to $50. Check the listing names the model and memory and says it boots. Buy the microSD card
+and power supply new; the Pi 4 needs a 15 W USB-C supply and does well with a plain heatsink case. That
+brings the total to about $90. Pi 3 and Pi Zero boards are too slow for live hints. Live hints have not been
+timed on a Pi 4 yet.
+
 ## Wiring the light
 
 LED long leg to GPIO 17 (physical pin 11) through the 330 ohm resistor, short leg to any ground pin (for
@@ -45,6 +51,47 @@ python -m learnling live --passage passages/sample_level1.txt \
     --model ~/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17 \
     --voice ~/models/vits-piper-en_US-amy-low --led-pin 17 --age 6
 ```
+
+## Family pilot: record only
+
+The first children read with learnling silent: no hints, no corrections, no score. The stand only records,
+with the light on while it listens. An adult listens to each recording later and types what was read, and
+the readings are scored on the laptop. Hints are turned on for children only once those scores are good.
+
+Children are known by a code (`child01`, `child02`, ...), never a name. Keep the list of which code is
+which child on paper, not on the stand or in the repo. Only record a child whose parent has signed the
+consent form.
+
+**On the day.** From the laptop, connect to the stand (the address is the hostname set in Raspberry Pi
+Imager):
+
+```
+ssh pi@learnling.local
+source ~/learnling-env/bin/activate && cd learnling
+python -m learnling pilot start child03 --passage passages/sample_level1.txt --age 6 --led-pin 17
+```
+
+Press Enter when the child is ready, and Enter again when they finish. Keep or discard the take, then read
+again or finish. Recordings are saved on the stand's SD card under `~/learnling-pilot/child03/`.
+
+**Afterwards, on the laptop** (not over SSH):
+
+```
+python -m learnling pilot copy pi@learnling.local
+```
+
+This copies every recording to `~/learnling-pilot/` on the laptop, checks each file against the stand's
+copy, and only then deletes it from the stand. Anything that did not copy cleanly stays on the stand and is
+listed. Then label and score one child at a time:
+
+```
+python -m learnling pilot label ~/learnling-pilot/child03
+python -m learnling eval ~/learnling-pilot/child03 --asr whisper --whisper-model PATH
+```
+
+`pilot label` plays each recording and shows the passage text already typed in; edit it to match what the
+child said and press Enter. For `eval`, point `--whisper-model` at the Kid-Whisper model folder: it had the
+fewest wrong flags on adult reads so far. These recordings never go in the repo or to any cloud service.
 
 ## Before filming with children
 

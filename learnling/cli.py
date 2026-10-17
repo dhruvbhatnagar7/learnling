@@ -307,6 +307,22 @@ def _add_asr_flags(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def cmd_pilot(args: argparse.Namespace) -> None:
+    from learnling import pilot
+
+    try:
+        if args.pilot_command == "start":
+            passage_text = Path(args.passage).read_text().strip()
+            pilot.run_start(args.child, passage_text, args.age, led_pin=args.led_pin)
+        elif args.pilot_command == "copy":
+            pilot.run_copy(args.host)
+        else:
+            pilot.run_label(Path(args.folder))
+    except (ValueError, ImportError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="learnling")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -359,6 +375,27 @@ def build_parser() -> argparse.ArgumentParser:
     live_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
     live_parser.add_argument("--save-report", help="Write a session report to this path")
     live_parser.set_defaults(func=cmd_live)
+
+    pilot_parser = subparsers.add_parser(
+        "pilot", help="Record-only sessions for the family pilot (see docs/raspberry-pi.md)"
+    )
+    pilot_sub = pilot_parser.add_subparsers(dest="pilot_command", required=True)
+    start_parser = pilot_sub.add_parser(
+        "start", help="On the stand: record a child reading, with no hints or score"
+    )
+    start_parser.add_argument("child", help="Child code such as child03, never a name")
+    start_parser.add_argument("--passage", required=True, help="Path to a passage text file")
+    start_parser.add_argument("--age", type=int, required=True, help="Child's age in years")
+    start_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
+    copy_parser = pilot_sub.add_parser(
+        "copy", help="On the laptop: move all recordings off the stand, checking each one"
+    )
+    copy_parser.add_argument("host", help="The stand's SSH address, such as pi@learnling.local")
+    label_parser = pilot_sub.add_parser(
+        "label", help="On the laptop: listen to each reading and type what was said"
+    )
+    label_parser.add_argument("folder", help="One child's folder, such as ~/learnling-pilot/child03")
+    pilot_parser.set_defaults(func=cmd_pilot)
 
     eval_parser = subparsers.add_parser(
         "eval", help="Score a folder of labelled recordings (see docs/audio-evaluation.md)"

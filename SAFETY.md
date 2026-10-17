@@ -12,7 +12,10 @@ in the pipeline is designed with them in mind.
   `learnling record` holds the microphone recording in a temporary file only
   while it is scored, then deletes it. The one exception is
   `learnling record --save-to FOLDER`, which an adult passes on purpose to
-  keep a recording for testing accuracy; see `docs/audio-evaluation.md`.
+  keep a recording for testing accuracy; see `docs/audio-evaluation.md`. The
+  other is `learnling pilot start`, which records for the consented family
+  pilot under a child code, never a name, until `learnling pilot copy` moves
+  the recordings to the adult's computer; see `docs/raspberry-pi.md`.
 - **Session-only memory.** Transcripts and utterance text live only in the
   in-memory `Session` object for the lifetime of the process. Nothing is
   written to disk unless you explicitly ask for it.
