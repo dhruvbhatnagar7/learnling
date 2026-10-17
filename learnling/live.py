@@ -98,6 +98,10 @@ class CoachEvent:
     spoken: str
 
 
+# New words heard since the last match that show the reader is still going.
+_STILL_READING_WORDS = 3
+
+
 def hint_for(word: str) -> str:
     """Coach toward the word without saying it."""
     if len(word) <= 2:
@@ -132,6 +136,7 @@ class ReadingCoach:
         self._last_move = 0.0
         self._hinted_at: int | None = None
         self._started = False
+        self._heard_at_move = 0
         self.recognizer.reset()
 
     def _speakable(self, text: str) -> str:
@@ -142,12 +147,23 @@ class ReadingCoach:
         self.heard_seconds += len(pcm) / 2 / SAMPLE_RATE
         self.recognizer.accept(pcm)
         heard = self.recognizer.partial_words()
-        if heard:
+        if heard and not self._started:
+            # Start the stuck clock when the reader starts, not when listening did.
             self._started = True
+            self._last_move = self.heard_seconds
 
         before = self.tracker.position
         if self.tracker.update(heard) > before:
             self._last_move = self.heard_seconds
+            self._heard_at_move = len(heard)
+            return None
+
+        # Words are still coming even though none matched the page: the reader
+        # is reading and the recogniser is mishearing them, not stuck. Sounding
+        # out one hard word gives a word or two, so wait for a few.
+        if len(heard) - self._heard_at_move >= _STILL_READING_WORDS:
+            self._last_move = self.heard_seconds
+            self._heard_at_move = len(heard)
             return None
 
         # A reader who has said nothing at all may be stuck on the first word;
