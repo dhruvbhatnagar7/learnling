@@ -3,7 +3,9 @@
 By default the report only includes what's needed for a teacher or parent
 to see progress — accuracy, words-per-minute, words correct per minute, miscue counts, assessment
 categories, how many questions came up — matching the data policy in
-SAFETY.md. Raw transcript text is only included if the caller explicitly
+SAFETY.md. It also lists the page words behind the miscue counts, each with
+the one word heard in its place and the spelling pattern it points to, so an
+adult knows what to practise. Raw transcript text is only included if the caller explicitly
 opts in.
 """
 
@@ -11,7 +13,67 @@ from __future__ import annotations
 
 import json
 
-from learnling.models import Session
+from learnling.models import Miscue, Session
+from learnling.patterns import PATTERN_NAMES, patterns_for
+
+_PATTERN_NOTE = (
+    "*Grouped by the spelling of each missed word. Use it as a guide to what "
+    "to listen for next time, not a diagnosis: the recogniser can mishear, "
+    "especially with children's voices.*"
+)
+
+
+def _word_entry(miscue: Miscue, sure: bool) -> dict:
+    return {
+        "word": miscue.expected,
+        "read_as": miscue.heard,
+        "kind": miscue.kind,
+        "patterns": patterns_for(miscue),
+        "sure": sure,
+    }
+
+
+def _words_to_look_at(notes: dict) -> list[dict]:
+    """The page words behind the miscue counts, raised ones first."""
+    result = notes.get("reading_result")
+    if result is None:
+        return []
+    return [_word_entry(m, True) for m in result.miscues] + [
+        _word_entry(m, False) for m in result.held_back
+    ]
+
+
+def _describe(entry: dict) -> str:
+    if entry["kind"] == "omission":
+        text = f'"{entry["word"]}", skipped'
+    elif entry["kind"] == "insertion":
+        text = f'added "{entry["read_as"]}"'
+    else:
+        text = f'"{entry["word"]}", read as "{entry["read_as"]}"'
+    # Short names here; the "Sounds to practise" list gives the examples.
+    names = [
+        PATTERN_NAMES[p].split(" (")[0]
+        for p in entry["patterns"]
+        if p not in ("skipped", "added")
+    ]
+    if names:
+        text += f" ({'; '.join(names)})"
+    return text
+
+
+def _pattern_summary(reading_stats: list[dict]) -> list[tuple[str, list[str]]]:
+    """Each pattern with the words that point to it, most words first."""
+    words: dict[str, list[str]] = {}
+    for stat in reading_stats:
+        for entry in stat["words_to_look_at"]:
+            if not entry["sure"]:
+                continue
+            label = entry["word"] or entry["read_as"]
+            for pattern in entry["patterns"]:
+                if label not in words.setdefault(pattern, []):
+                    words[pattern].append(label)
+    order = list(PATTERN_NAMES)
+    return sorted(words.items(), key=lambda item: (-len(item[1]), order.index(item[0])))
 
 
 def build_summary(session: Session, include_transcripts: bool = False) -> dict:
@@ -31,6 +93,7 @@ def build_summary(session: Session, include_transcripts: bool = False) -> dict:
                 "assessment": e["report_notes"].get("assessment"),
                 "miscue_counts": e["report_notes"].get("miscue_counts"),
                 "suppressed_miscues": e["report_notes"].get("suppressed_miscues"),
+                "words_to_look_at": _words_to_look_at(e["report_notes"]),
             }
             for e in reading_events
         ],
@@ -76,6 +139,33 @@ def to_markdown(summary: dict) -> str:
             "enough about to mention to the learner. See `MISCUE_CONFIDENCE_THRESHOLD`.*"
         )
         lines.append("")
+
+        summary_rows = _pattern_summary(summary["reading_stats"])
+        if summary_rows:
+            lines.append("## Sounds to practise")
+            lines.append("")
+            for pattern, words in summary_rows:
+                lines.append(f"- {PATTERN_NAMES[pattern].capitalize()}: {', '.join(words)}")
+            lines.append("")
+            lines.append(_PATTERN_NOTE)
+            lines.append("")
+
+        for i, stat in enumerate(summary["reading_stats"], start=1):
+            entries = stat["words_to_look_at"]
+            if not entries:
+                continue
+            lines.append(f"## Read {i}: words to look at")
+            lines.append("")
+            for entry in entries:
+                if entry["sure"]:
+                    lines.append(f"- {_describe(entry)}")
+            unsure = [e for e in entries if not e["sure"]]
+            if unsure:
+                lines.append(
+                    "- Not sure, so not mentioned to the reader: "
+                    + "; ".join(_describe(e) for e in unsure)
+                )
+            lines.append("")
 
     if "transcripts" in summary:
         lines.append("## Transcripts")
