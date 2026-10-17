@@ -47,9 +47,11 @@ def _fake_whisper(words):
 
 def test_whisper_is_never_prompted_with_the_passage():
     model = _fake_whisper([(" The", 0.0, 0.2, 0.9)])
-    WhisperASR(model=model).transcribe("reading.wav")
+    WhisperASR(model=model, find_speech=lambda path: [0.5, 3.0, 6.0, 9.0]).transcribe("reading.wav")
     assert "initial_prompt" not in model.kwargs
-    assert model.kwargs["vad_filter"] is True
+    # Speech stretches are decoded one by one, never glued into one window.
+    assert model.kwargs["vad_filter"] is False
+    assert model.kwargs["clip_timestamps"] == [0.5, 3.0, 6.0, 9.0]
     assert model.kwargs["condition_on_previous_text"] is False
 
 
@@ -58,7 +60,7 @@ def test_a_shaky_whisper_word_is_held_back_from_the_child():
         [(" the", 0.0, 0.2, 0.95), (" cat", 0.2, 0.5, 0.95), (" sat", 0.5, 0.8, 0.95),
          (" on", 0.8, 0.9, 0.95), (" the", 0.9, 1.0, 0.95), (" hat", 1.0, 1.3, 0.30)]
     )
-    utterance = WhisperASR(model=model).transcribe("reading.wav")
+    utterance = WhisperASR(model=model, find_speech=lambda path: [0.0, 2.0]).transcribe("reading.wav")
     result = ReadingAgent().assess(PASSAGE, utterance)
     assert result.miscues == []
     assert result.suppressed_miscues == 1
