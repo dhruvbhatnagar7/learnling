@@ -13,17 +13,33 @@ from __future__ import annotations
 
 import json
 
+from learnling.agents.reading import normalize_words
 from learnling.models import Miscue, Session
-from learnling.patterns import PATTERN_NAMES, patterns_for
+from learnling.patterns import PATTERN_NAMES, is_self_correction, patterns_for
+
+#: A pattern needs this many different words before it is listed as one to
+#: practise. One word can be a recogniser mishearing; the same kind of slip
+#: on several words is more likely the reader.
+MIN_WORDS_PER_PATTERN = 2
 
 _PATTERN_NOTE = (
-    "*Grouped by the spelling of each missed word. Use it as a guide to what "
-    "to listen for next time, not a diagnosis: the recogniser can mishear, "
-    "especially with children's voices.*"
+    "*Patterns seen in at least two different words, grouped by spelling. Use "
+    "it as a guide to what to listen for next time, not a diagnosis: the "
+    "recogniser can mishear, especially with children's voices.*"
 )
 
 
-def _word_entry(miscue: Miscue, sure: bool) -> dict:
+def _word_entry(miscue: Miscue, sure: bool, page: list[str]) -> dict:
+    next_word = page[miscue.position] if miscue.position < len(page) else None
+    if is_self_correction(miscue, next_word):
+        tried = Miscue("substitution", next_word, miscue.heard, miscue.position)
+        return {
+            "word": next_word,
+            "read_as": miscue.heard,
+            "kind": "self_correction",
+            "patterns": patterns_for(tried),
+            "sure": sure,
+        }
     return {
         "word": miscue.expected,
         "read_as": miscue.heard,
@@ -38,13 +54,16 @@ def _words_to_look_at(notes: dict) -> list[dict]:
     result = notes.get("reading_result")
     if result is None:
         return []
-    return [_word_entry(m, True) for m in result.miscues] + [
-        _word_entry(m, False) for m in result.held_back
+    page = normalize_words(result.passage)
+    return [_word_entry(m, True, page) for m in result.miscues] + [
+        _word_entry(m, False, page) for m in result.held_back
     ]
 
 
 def _describe(entry: dict) -> str:
-    if entry["kind"] == "omission":
+    if entry["kind"] == "self_correction":
+        text = f'"{entry["word"]}", first read as "{entry["read_as"]}", then fixed'
+    elif entry["kind"] == "omission":
         text = f'"{entry["word"]}", skipped'
     elif entry["kind"] == "insertion":
         text = f'added "{entry["read_as"]}"'
@@ -66,14 +85,15 @@ def _pattern_summary(reading_stats: list[dict]) -> list[tuple[str, list[str]]]:
     words: dict[str, list[str]] = {}
     for stat in reading_stats:
         for entry in stat["words_to_look_at"]:
-            if not entry["sure"]:
+            if not entry["sure"] or entry["kind"] == "self_correction":
                 continue
             label = entry["word"] or entry["read_as"]
             for pattern in entry["patterns"]:
                 if label not in words.setdefault(pattern, []):
                     words[pattern].append(label)
     order = list(PATTERN_NAMES)
-    return sorted(words.items(), key=lambda item: (-len(item[1]), order.index(item[0])))
+    repeated = [item for item in words.items() if len(item[1]) >= MIN_WORDS_PER_PATTERN]
+    return sorted(repeated, key=lambda item: (-len(item[1]), order.index(item[0])))
 
 
 def build_summary(session: Session, include_transcripts: bool = False) -> dict:
@@ -157,8 +177,14 @@ def to_markdown(summary: dict) -> str:
             lines.append(f"## Read {i}: words to look at")
             lines.append("")
             for entry in entries:
-                if entry["sure"]:
+                if entry["sure"] and entry["kind"] != "self_correction":
                     lines.append(f"- {_describe(entry)}")
+            fixed = [e for e in entries if e["sure"] and e["kind"] == "self_correction"]
+            if fixed:
+                lines.append(
+                    "- Fixed it themselves (not mentioned to the reader): "
+                    + "; ".join(_describe(e) for e in fixed)
+                )
             unsure = [e for e in entries if not e["sure"]]
             if unsure:
                 lines.append(

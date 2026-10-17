@@ -18,6 +18,7 @@ def test_the_pattern_is_where_the_words_differ():
     assert _sub("swam", "swim") == ["short_vowel"]
     assert _sub("kite", "kit") == ["silent_e"]
     assert _sub("park", "pack") == ["r_controlled"]
+    assert _sub("heard", "hard") == ["r_controlled"]
     assert _sub("mat", "hat") == ["consonant"]
 
 
@@ -48,12 +49,29 @@ def _report(text, word_confidences=None, fmt="markdown"):
     return generate_report(orchestrator.session, fmt=fmt)
 
 
+def test_each_word_lands_in_one_group():
+    assert len(_sub("found", "formed")) == 1
+    assert len(_sub("hat", "head")) == 1
+
+
 def test_the_report_names_the_words_and_the_pattern():
-    report = _report("Mia fond a shell on the beach. It was pink and smooth.")
+    report = _report("Mia fond a shell on the bench. It was pink and smooth.")
     assert '"found", read as "fond" (vowel teams)' in report
     assert '"white", skipped' in report
-    assert "## Sounds to practise" in report
-    assert "Vowel teams" in report
+    assert "- Vowel teams (ai, ee, ea, oa, ou, igh...): found, beach" in report
+
+
+def test_a_pattern_seen_in_one_word_is_not_a_sound_to_practise():
+    """One word can be the recogniser mishearing; the per-read list still shows it."""
+    report = _report("Mia fond a shell on the beach. It was pink and white and smooth.")
+    assert '"found", read as "fond"' in report
+    assert "Sounds to practise" not in report
+
+
+def test_a_self_correction_is_reported_as_fixed_not_as_a_mistake():
+    report = _report("Mia found a sell shell on the beach. It was pink and white and smooth.")
+    assert 'Fixed it themselves (not mentioned to the reader): "shell", first read as "sell", then fixed (digraphs)' in report
+    assert "added" not in report
 
 
 def test_words_the_recogniser_was_unsure_of_are_marked_not_sure():

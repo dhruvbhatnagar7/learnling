@@ -43,7 +43,8 @@ _VOWEL_TEAMS = (
     "ai", "ay", "ee", "ea", "ey", "oa", "oe", "oo", "ou", "ow", "oi", "oy",
     "au", "aw", "ew", "ie", "ue", "ui",
 )
-_R_CONTROLLED = ("ar", "or", "er", "ir", "ur")
+# Vowel-plus-r spellings first, so "heard" is r-controlled rather than "ea".
+_R_CONTROLLED = ("ear", "eer", "air", "are", "ore", "oar", "our", "ire", "ar", "or", "er", "ir", "ur")
 _DIGRAPHS = ("tch", "dge", "sh", "ch", "th", "wh", "ph", "ck", "ng", "nk", "kn", "wr", "gh")
 _INITIAL_BLENDS = (
     "scr", "spl", "spr", "str", "squ", "thr", "shr",
@@ -85,8 +86,8 @@ def _spans(word: str) -> list[_Span]:
         # them stays its own sound.
         claim(silent.start(), silent.start() + 1, "silent_e")
         claim(len(word) - 1, len(word), "silent_e")
-    find_all(_VOWEL_TEAMS, "vowel_team")
     find_all(_R_CONTROLLED, "r_controlled")
+    find_all(_VOWEL_TEAMS, "vowel_team")
     find_all(_DIGRAPHS, "digraph")
     for blend in _INITIAL_BLENDS:
         if word.startswith(blend):
@@ -152,7 +153,7 @@ def _differing_region(expected: str, heard: str) -> tuple[int, int]:
 
 
 def patterns_for(miscue: Miscue) -> list[str]:
-    """The pattern keys (see `PATTERN_NAMES`) this miscue points to."""
+    """The pattern key (see `PATTERN_NAMES`) this miscue points to, if any."""
     if miscue.kind == "omission":
         return ["skipped"]
     if miscue.kind == "insertion":
@@ -166,8 +167,33 @@ def patterns_for(miscue: Miscue) -> list[str]:
         # "a" for "the" is not about any one spelling pattern.
         return ["swap"]
     start, end = _differing_region(expected, heard)
-    found = []
-    for span in _spans(expected):
-        if span.start < end and start < span.end and span.pattern not in found:
-            found.append(span.pattern)
-    return sorted(found, key=list(PATTERN_NAMES).index)
+    overlapping = [
+        span for span in _spans(expected) if span.start < end and start < span.end
+    ]
+    if not overlapping:
+        return []
+    # One group per word, so a word is not counted twice. The pattern that
+    # covers most of the changed letters wins, and a multi-letter pattern
+    # wins a tie over a single letter.
+    order = list(PATTERN_NAMES)
+    best = max(
+        overlapping,
+        key=lambda span: (
+            min(end, span.end) - max(start, span.start),
+            span.end - span.start,
+            -order.index(span.pattern),
+        ),
+    )
+    return [best.pattern]
+
+
+def is_self_correction(miscue: Miscue, next_page_word: str | None) -> bool:
+    """An extra word that was a try at the next page word: "sell... shell".
+
+    The reader fixed it themselves, so it is not something to practise.
+    """
+    return (
+        miscue.kind == "insertion"
+        and next_page_word is not None
+        and is_near_miss(next_page_word, miscue.heard)
+    )
