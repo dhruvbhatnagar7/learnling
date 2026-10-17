@@ -17,6 +17,11 @@ Two settings here matter more than they look:
   mistakes a reading tutor exists to catch.
 - Voice activity filtering is on, because Whisper tends to invent words
   over silence, and a child pausing on a hard word is silence.
+- Each stretch of speech the voice detector finds is decoded on its own.
+  faster-whisper's own `vad_filter` glues the stretches back together into
+  one window, and after a long pause (a reader stuck on a word) Whisper
+  can stop writing partway through that window, so the rest of the read
+  looks skipped.
 """
 
 from __future__ import annotations
@@ -25,14 +30,26 @@ from learnling.asr.base import utterance_from_words
 from learnling.models import Utterance
 
 
+def _speech_clips(path: str) -> list[float]:
+    """Start and end, in seconds, of each stretch of speech in the file."""
+    from faster_whisper.audio import decode_audio
+    from faster_whisper.vad import VadOptions, get_speech_timestamps
+
+    rate = 16000
+    stamps = get_speech_timestamps(decode_audio(path, sampling_rate=rate), VadOptions())
+    return [t for s in stamps for t in (s["start"] / rate, s["end"] / rate)]
+
+
 class WhisperASR:
     """Adapts faster-whisper to the learnling ASRAdapter protocol.
 
     `model` lets a caller (or a test) pass an already-loaded model; otherwise
-    one is loaded by size.
+    one is loaded by size. `find_speech` returns the speech stretches to
+    decode, as flat [start, end, start, end, ...] seconds.
     """
 
-    def __init__(self, model_size: str = "base.en", model=None, **model_kwargs):
+    def __init__(self, model_size: str = "base.en", model=None, find_speech=None, **model_kwargs):
+        self._find_speech = find_speech or _speech_clips
         if model is None:
             try:
                 from faster_whisper import WhisperModel
@@ -47,13 +64,17 @@ class WhisperASR:
         if isinstance(audio, bytes):
             raise TypeError("WhisperASR.transcribe expects an audio file path")
 
+        clips = self._find_speech(audio)
+        if not clips:
+            return utterance_from_words([])
         segments, _info = self._model.transcribe(
             audio,
             # Multilingual models (such as children's fine-tunes of whisper-small)
             # otherwise guess the language, and an accent can tip the guess.
             language="en",
             word_timestamps=True,
-            vad_filter=True,
+            vad_filter=False,
+            clip_timestamps=clips,
             condition_on_previous_text=False,
         )
         words = [word for segment in segments for word in (segment.words or [])]
