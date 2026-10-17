@@ -7,7 +7,7 @@ speaker and a listening light. This guide has not been tried on a Pi yet; expect
 
 | Part | Notes | Rough cost |
 |---|---|---|
-| Raspberry Pi 5, 4 GB or 8 GB | The 4 GB model is enough | $60 to $80 |
+| Raspberry Pi 5, 4 GB or 8 GB | The 4 GB model is enough | About $85 (4 GB) after the April 2026 price rise |
 | Official 27 W USB-C power supply | Underpowered supplies cause odd audio faults | $12 |
 | microSD card, 32 GB | | $10 |
 | Active cooler for the Pi 5 | Speech models keep the CPU busy | $5 |
@@ -15,13 +15,14 @@ speaker and a listening light. This guide has not been tried on a Pi yet; expect
 | LED, 330 ohm resistor, 2 jumper wires | The listening light. Optional at first | $5 |
 | Book stand | Plain, no character | $15 |
 
-About $130 to $170 in total.
+About $155 to $175 in total with a new Pi 5 4 GB.
 
-**Cheaper:** a used Raspberry Pi 4 with 4 GB (2 GB is enough for record-only sessions) instead of the Pi 5,
-for about $35 to $50. Check the listing names the model and memory and says it boots. Buy the microSD card
-and power supply new; the Pi 4 needs a 15 W USB-C supply and does well with a plain heatsink case. That
-brings the total to about $90. Pi 3 and Pi Zero boards are too slow for live hints. Live hints have not been
-timed on a Pi 4 yet.
+**Cheaper:** a used Raspberry Pi 4 with 4 GB (2 GB is enough for record-only sessions) instead of a new
+board. Prices went up in April 2026 because of memory shortages: in October 2026 a new Pi 4 4 GB was about
+$100, and used ones on eBay sold for about $50 to $80. Pick a listing that names the model and memory and says
+it was tested. Buy the microSD card and power supply new; the Pi 4 needs a 15 W USB-C supply and does well
+with a plain heatsink case. That brings the total to about $110 to $130. Pi 3 and Pi Zero boards are too slow
+for live hints. Live hints have not been timed on a Pi 4 yet.
 
 ## Wiring the light
 
