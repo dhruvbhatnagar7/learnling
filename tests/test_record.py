@@ -68,3 +68,22 @@ def test_record_keeps_audio_only_when_asked(tmp_path, monkeypatch):
     _run_record(tmp_path, monkeypatch, "--save-to", str(saved))
     assert len(list(saved.glob("*.wav"))) == 1
     assert len(list(saved.glob("*.json"))) == 1
+
+
+def test_close_quietly_does_not_wait_for_a_stuck_driver():
+    import threading
+    import time
+
+    release = threading.Event()
+
+    class StuckStream:
+        def abort(self, ignore_errors=True):
+            release.wait()
+
+        def close(self, ignore_errors=True):
+            pass
+
+    start = time.monotonic()
+    record._close_quietly(StuckStream(), timeout=0.2)
+    assert time.monotonic() - start < 1.0
+    release.set()
