@@ -137,3 +137,18 @@ def test_bpe_pieces_join_into_words_with_confidence():
     assert [w[0] for w in words] == ["THE", "YELLOW", "LAMP"]
     assert words[1][1] == 0.4 and words[1][2] == 0.9
     assert 0.6 < words[2][3] < 0.61
+
+
+def test_the_stuck_clock_starts_when_the_reader_does():
+    # Quiet while the reader settles, a false start, then a steady read: no hint.
+    script = [(2.5, "um"), (3.2, "um the"), (3.6, "um the big"), (4.0, "um the big dog"),
+              (4.5, "um the big dog ran"), (5.0, "um the big dog ran to the park")]
+    assert _run(_coach(script), 6) == []
+
+
+def test_misheard_words_that_keep_coming_are_not_stuck():
+    # The recogniser mishears the opening, but words keep arriving: no hint.
+    script = [(0.5, "a"), (1.0, "a guard"), (1.5, "a guard sat"), (2.0, "a guard sat on"),
+              (2.5, "a guard sat on mud"), (3.0, "a guard sat on mud and"),
+              (3.5, "a guard sat on mud and ran to"), (4.0, "a guard sat on mud and ran to the park")]
+    assert _run(_coach(script), 5) == []
