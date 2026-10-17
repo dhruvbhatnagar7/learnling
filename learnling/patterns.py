@@ -195,5 +195,6 @@ def is_self_correction(miscue: Miscue, next_page_word: str | None) -> bool:
     return (
         miscue.kind == "insertion"
         and next_page_word is not None
+        and miscue.heard != next_page_word
         and is_near_miss(next_page_word, miscue.heard)
     )

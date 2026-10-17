@@ -70,7 +70,7 @@ def test_a_pattern_seen_in_one_word_is_not_a_sound_to_practise():
 
 def test_a_self_correction_is_reported_as_fixed_not_as_a_mistake():
     report = _report("Mia found a sell shell on the beach. It was pink and white and smooth.")
-    assert 'Fixed it themselves (not mentioned to the reader): "shell", first read as "sell", then fixed (digraphs)' in report
+    assert 'Fixed or repeated, not mentioned to the reader: "shell", first read as "sell", then fixed (digraphs)' in report
     assert "added" not in report
 
 
@@ -97,3 +97,19 @@ def test_a_clean_read_has_nothing_to_look_at():
     report = _report(PASSAGE)
     assert "words to look at" not in report
     assert "Sounds to practise" not in report
+
+
+def test_a_repeated_word_is_not_a_self_correction():
+    report = _report("Mia found a shell on the the beach. It was pink and white and smooth.")
+    assert '"the", said twice' in report
+    assert "then fixed" not in report
+
+
+def test_an_unsure_self_correction_is_still_listed_as_fixed():
+    confidences = [0.9] * 3 + [0.3] + [0.9] * 10
+    report = _report(
+        "Mia found a sell shell on the beach. It was pink and white and smooth.",
+        word_confidences=confidences,
+    )
+    assert '"shell", first read as "sell", then fixed' in report
+    assert "Not sure" not in report

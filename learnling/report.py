@@ -22,6 +22,9 @@ from learnling.patterns import PATTERN_NAMES, is_self_correction, patterns_for
 #: on several words is more likely the reader.
 MIN_WORDS_PER_PATTERN = 2
 
+#: Things a reader does that are not misreadings, listed apart from mistakes.
+_NOT_MISTAKES = ("self_correction", "repeat")
+
 _PATTERN_NOTE = (
     "*Patterns seen in at least two different words, grouped by spelling. Use "
     "it as a guide to what to listen for next time, not a diagnosis: the "
@@ -31,6 +34,15 @@ _PATTERN_NOTE = (
 
 def _word_entry(miscue: Miscue, sure: bool, page: list[str]) -> dict:
     next_word = page[miscue.position] if miscue.position < len(page) else None
+    if miscue.kind == "insertion" and miscue.heard == next_word:
+        # "the the": saying a word twice is not a misreading.
+        return {
+            "word": next_word,
+            "read_as": miscue.heard,
+            "kind": "repeat",
+            "patterns": [],
+            "sure": sure,
+        }
     if is_self_correction(miscue, next_word):
         tried = Miscue("substitution", next_word, miscue.heard, miscue.position)
         return {
@@ -61,7 +73,9 @@ def _words_to_look_at(notes: dict) -> list[dict]:
 
 
 def _describe(entry: dict) -> str:
-    if entry["kind"] == "self_correction":
+    if entry["kind"] == "repeat":
+        text = f'"{entry["word"]}", said twice'
+    elif entry["kind"] == "self_correction":
         text = f'"{entry["word"]}", first read as "{entry["read_as"]}", then fixed'
     elif entry["kind"] == "omission":
         text = f'"{entry["word"]}", skipped'
@@ -85,7 +99,7 @@ def _pattern_summary(reading_stats: list[dict]) -> list[tuple[str, list[str]]]:
     words: dict[str, list[str]] = {}
     for stat in reading_stats:
         for entry in stat["words_to_look_at"]:
-            if not entry["sure"] or entry["kind"] == "self_correction":
+            if not entry["sure"] or entry["kind"] in _NOT_MISTAKES:
                 continue
             label = entry["word"] or entry["read_as"]
             for pattern in entry["patterns"]:
@@ -177,15 +191,16 @@ def to_markdown(summary: dict) -> str:
             lines.append(f"## Read {i}: words to look at")
             lines.append("")
             for entry in entries:
-                if entry["sure"] and entry["kind"] != "self_correction":
+                if entry["sure"] and entry["kind"] not in _NOT_MISTAKES:
                     lines.append(f"- {_describe(entry)}")
-            fixed = [e for e in entries if e["sure"] and e["kind"] == "self_correction"]
+            # However sure the recogniser was, these were not mistakes.
+            fixed = [e for e in entries if e["kind"] in _NOT_MISTAKES]
             if fixed:
                 lines.append(
-                    "- Fixed it themselves (not mentioned to the reader): "
+                    "- Fixed or repeated, not mentioned to the reader: "
                     + "; ".join(_describe(e) for e in fixed)
                 )
-            unsure = [e for e in entries if not e["sure"]]
+            unsure = [e for e in entries if not e["sure"] and e["kind"] not in _NOT_MISTAKES]
             if unsure:
                 lines.append(
                     "- Not sure, so not mentioned to the reader: "
