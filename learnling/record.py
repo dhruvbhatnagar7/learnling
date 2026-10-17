@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import threading
 import wave
 from datetime import datetime
 from pathlib import Path
@@ -41,11 +42,32 @@ def record_until_enter(prompt=input) -> bytes:
     def callback(indata, frames, time, status):  # pragma: no cover - needs real hardware
         chunks.append(bytes(indata))
 
-    with sd.RawInputStream(  # pragma: no cover - needs real hardware
+    stream = sd.RawInputStream(  # pragma: no cover - needs real hardware
         samplerate=SAMPLE_RATE, channels=1, dtype="int16", callback=callback
-    ):
+    )
+    stream.start()  # pragma: no cover - needs real hardware
+    try:  # pragma: no cover - needs real hardware
         prompt("Listening. Press Enter when the reading is finished. ")
+    finally:
+        _close_quietly(stream)
     return b"".join(chunks)
+
+
+def _close_quietly(stream, timeout: float = 2.0) -> None:
+    """Stop the microphone without letting a stuck audio driver hang the program.
+
+    Stopping a stream waits for the driver, and on some Macs that wait never
+    ends. Abort instead of stop, do it on a background thread, and move on
+    after `timeout` seconds either way; the audio is already captured.
+    """
+
+    def close():
+        stream.abort(ignore_errors=True)
+        stream.close(ignore_errors=True)
+
+    worker = threading.Thread(target=close, daemon=True)
+    worker.start()
+    worker.join(timeout)
 
 
 def write_wav(path: str | Path, pcm: bytes) -> None:
