@@ -235,12 +235,25 @@ class Speaker:
         if self.light:
             self.light.off()
         try:
-            sd.play(samples, rate)
-            sd.wait()
+            _play(sd, samples, rate)
         finally:
             if self.light:
                 self.light.on()
             self.muted.clear()
+
+
+def _play(sd, samples, rate: int) -> None:  # pragma: no cover - needs real hardware
+    """Play, converting to the speaker's own rate if it refuses this one (as some USB speakerphones do)."""
+    import numpy as np
+
+    try:
+        sd.play(samples, rate)
+    except sd.PortAudioError:
+        device_rate = int(sd.query_devices(kind="output")["default_samplerate"])
+        x = np.asarray(samples, dtype=np.float32)
+        n = int(len(x) * device_rate / rate)
+        sd.play(np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32), device_rate)
+    sd.wait()
 
 
 def mic_chunks(speaker: Speaker, max_seconds: float, enter_stops: bool = True):
