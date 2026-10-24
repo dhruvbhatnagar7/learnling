@@ -28,7 +28,8 @@ from learnling.models import LearnerProfile
 from learnling.orchestrator import Orchestrator
 
 WAKE_WORDS = ("ready",)
-START_WORDS = ("read", "ready", "go", "start")
+#: "read" on its own is often written down as "red".
+START_WORDS = ("read", "red", "ready", "go", "start")
 
 #: How long one listening window lasts while waiting for a word; the
 #: recogniser starts fresh each window so a long wait doesn't pile up.
@@ -69,14 +70,19 @@ def listen(recognizer, chunks, until=None, quiet_after: float = 1.5, max_seconds
     return words
 
 
-def wait_for(recognizer, open_mic, wanted, light=None, tries: int | None = None) -> bool:
-    """Listen in short windows until one of `wanted` is heard; False if `tries` run out."""
+def wait_for(recognizer, open_mic, wanted, light=None, tries: int | None = None, on_status=None) -> bool:
+    """Listen in short windows until one of `wanted` is heard; False if `tries` run out.
+
+    `on_status` is shown what was heard, so the adult can see why it is still waiting.
+    """
     attempt = 0
     while tries is None or attempt < tries:
         attempt += 1
         if light:
             light.on()
         words = listen(recognizer, open_mic(_WINDOW_SECONDS), until=lambda w: heard_any(w, wanted))
+        if words and on_status:
+            on_status(f"  (heard: {' '.join(words)})")
         if heard_any(words, wanted):
             return True
     return False
@@ -113,19 +119,20 @@ def run_stand(
 
     if wake:
         on_status('Waiting for "I\'m ready to read"...')
-        wait_for(recognizer, open_mic, WAKE_WORDS, light)
+        wait_for(recognizer, open_mic, WAKE_WORDS, light, on_status=on_status)
     speak(buddy.greet())
 
     def reading(hints: bool):
         speak(_line(orchestrator, "Say 'read' when you're ready to start."))
-        if not wait_for(recognizer, open_mic, START_WORDS, light, tries=6):
-            on_status("No 'read' heard; starting anyway.")
+        if not wait_for(recognizer, open_mic, START_WORDS, light, tries=6, on_status=on_status):
+            on_status("  (no 'read' heard; starting the read anyway)")
         if light:
             light.on()
         coach = ReadingCoach(passage_text, recognizer, age_years=age_years, hints=hints)
         utterance = run_reading(coach, open_mic(max_read), speak, stop_when=said_stop_word)
         if light:
             light.off()
+        on_status(f"  (read heard as: {utterance.text})")
         orchestrator.handle_utterance(_without_stop_word(utterance))
         result = orchestrator.session.events[-1]["report_notes"]["reading_result"]
         return coach, result
