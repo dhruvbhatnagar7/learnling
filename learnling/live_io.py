@@ -38,33 +38,79 @@ def silence(seconds: float) -> bytes:
 
 
 class OfflineVoice:
-    """Text to speech on this machine, with a sherpa-onnx VITS (Piper) voice.
+    """Text to speech on this machine, with a sherpa-onnx voice.
 
-    Voices are on https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models,
-    for example `vits-piper-en_US-amy-low`.
+    Voices are on https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models.
+    Three kinds work, told apart by the folder: a VITS (Piper) voice such as
+    `vits-piper-en_US-amy-low`, a Kokoro voice such as `kokoro-int8-en-v0_19`,
+    or a Kitten voice such as `kitten-nano-en-v0_2-fp16`. Kokoro and Kitten
+    folders hold several speakers; `speaker` picks one (4 is Sky in Kokoro v0.19).
     """
 
-    def __init__(self, voice_dir: str | Path, speed: float = 0.9):
+    def __init__(self, voice_dir: str | Path, speed: float = 0.9, speaker: int = 0, num_threads: int = 2):
         import sherpa_onnx
 
         folder = Path(voice_dir)
-        model = next(folder.glob("*.onnx"))
+        model = str(next(folder.glob("*.onnx")))
+        files = dict(tokens=str(folder / "tokens.txt"), data_dir=str(folder / "espeak-ng-data"))
+        if (folder / "voices.bin").exists():
+            files["voices"] = str(folder / "voices.bin")
+            if "kitten" in folder.name.lower():
+                kind = dict(kitten=sherpa_onnx.OfflineTtsKittenModelConfig(model=model, **files))
+            else:
+                kind = dict(kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(model=model, **files))
+        else:
+            kind = dict(vits=sherpa_onnx.OfflineTtsVitsModelConfig(model=model, **files))
         config = sherpa_onnx.OfflineTtsConfig(
-            model=sherpa_onnx.OfflineTtsModelConfig(
-                vits=sherpa_onnx.OfflineTtsVitsModelConfig(
-                    model=str(model),
-                    tokens=str(folder / "tokens.txt"),
-                    data_dir=str(folder / "espeak-ng-data"),
-                ),
-                num_threads=2,
-            ),
+            model=sherpa_onnx.OfflineTtsModelConfig(**kind, num_threads=num_threads),
         )
         self._tts = sherpa_onnx.OfflineTts(config)
         self._speed = speed
+        self._speaker = speaker
 
     def synthesize(self, text: str) -> tuple[list[float], int]:
-        audio = self._tts.generate(text, sid=0, speed=self._speed)
+        audio = self._tts.generate(text, sid=self._speaker, speed=self._speed)
+        if not audio.sample_rate:
+            raise RuntimeError(
+                "the voice made no sound; sherpa-onnx 2.0 breaks these voices, "
+                'install 1.13.8 with: pip install "sherpa-onnx==1.13.8"'
+            )
         return list(audio.samples), audio.sample_rate
+
+
+class PreparedVoice:
+    """A voice that makes known lines ahead of time, in the background.
+
+    `prepare(lines)` starts making them while the session does other things
+    (waiting for the reader, greeting them). A line that is ready plays at
+    once; one that isn't is made on the spot, as before. Nothing is written
+    to disk.
+    """
+
+    def __init__(self, voice):
+        self.voice = voice
+        self._ready: dict[str, tuple[list[float], int]] = {}
+        self._lock = threading.Lock()
+
+    def prepare(self, lines) -> threading.Thread:
+        def work():
+            for line in lines:
+                if line not in self._ready:
+                    made = self._synthesize_locked(line)
+                    self._ready[line] = made
+
+        worker = threading.Thread(target=work, daemon=True)
+        worker.start()
+        return worker
+
+    def _synthesize_locked(self, text: str):
+        # The voice model is not safe to run from two threads at once.
+        with self._lock:
+            return self.voice.synthesize(text)
+
+    def synthesize(self, text: str) -> tuple[list[float], int]:
+        ready = self._ready.get(text)
+        return ready if ready is not None else self._synthesize_locked(text)
 
 
 def to_pcm16(samples, rate: int) -> bytes:
@@ -145,11 +191,12 @@ class Speaker:
             self.muted.clear()
 
 
-def mic_chunks(speaker: Speaker, max_seconds: float):
+def mic_chunks(speaker: Speaker, max_seconds: float, enter_stops: bool = True):
     """The microphone, a tenth of a second at a time, until Enter or `max_seconds`.
 
     Audio that arrives while learnling is speaking is dropped, so it never hears
-    (or waits on) itself.
+    (or waits on) itself. With `enter_stops=False` only `max_seconds` (or the
+    caller letting go) ends it, for hands-free sessions.
     """
     try:
         import sounddevice as sd
@@ -167,7 +214,8 @@ def mic_chunks(speaker: Speaker, max_seconds: float):
         sys.stdin.readline()
         stop.set()
 
-    threading.Thread(target=wait_for_enter, daemon=True).start()
+    if enter_stops:
+        threading.Thread(target=wait_for_enter, daemon=True).start()
     heard = 0.0
     with sd.RawInputStream(  # pragma: no cover - needs real hardware
         samplerate=SAMPLE_RATE, channels=1, dtype="int16",

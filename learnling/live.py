@@ -105,7 +105,7 @@ _STILL_READING_WORDS = 3
 def hint_for(word: str) -> str:
     """Coach toward the word without saying it."""
     if len(word) <= 2:
-        return "Take your time. Look at the next word and sound it out."
+        return "Take your time. Look at the word and sound it out."
     return f"Take your time. That word starts with '{word[:2]}'."
 
 
@@ -195,6 +195,23 @@ class ReadingCoach:
         return self.recognizer.finish()
 
 
+def lines_for_passage(passage_text: str, age_years: int) -> list[str]:
+    """Everything a coached read of this passage might say, so a slow voice can make it ahead."""
+    coach = ReadingCoach(passage_text, _NoRecognizer(), age_years=age_years)
+    lines: list[str] = []
+    for word in dict.fromkeys(coach.tracker.expected):
+        for line in (hint_for(word), supply_for(word)):
+            spoken = coach._speakable(line)
+            if spoken not in lines:
+                lines.append(spoken)
+    return lines
+
+
+class _NoRecognizer:
+    def reset(self):
+        pass
+
+
 @dataclass
 class LiveSessionResult:
     first_read_events: list[CoachEvent]
@@ -204,12 +221,25 @@ class LiveSessionResult:
     orchestrator: Orchestrator
 
 
-def run_reading(coach: ReadingCoach, chunks, speak, done_after_seconds: float = 1.5):
+#: What a reader can say to end a reading early.
+STOP_WORDS = ("done", "finished")
+
+
+def said_stop_word(coach: ReadingCoach) -> bool:
+    """The reader just said "done" (and the page wasn't asking for that word)."""
+    heard = coach.recognizer.partial_words()
+    if not heard or heard[-1] not in STOP_WORDS:
+        return False
+    return heard[-1] not in coach.tracker.expected[max(0, coach.tracker.position - 1):coach.tracker.position + 2]
+
+
+def run_reading(coach: ReadingCoach, chunks, speak, done_after_seconds: float = 1.5, stop_when=None):
     """Feed audio chunks to `coach` until the passage is read or audio runs out.
 
     `speak(text)` is called for every hint. Once the last word is reached the
     reading ends after `done_after_seconds` more audio, so a trailing word is
-    not cut off.
+    not cut off. `stop_when(coach)`, if given, ends the reading as soon as it
+    returns true, for example when the reader says "done".
     """
     finished_at = None
     chunks = iter(chunks)
@@ -218,6 +248,8 @@ def run_reading(coach: ReadingCoach, chunks, speak, done_after_seconds: float = 
             event = coach.feed(pcm)
             if event is not None:
                 speak(event.spoken)
+            if stop_when is not None and stop_when(coach):
+                break
             if coach.finished and finished_at is None:
                 finished_at = coach.heard_seconds
             if finished_at is not None and coach.heard_seconds - finished_at >= done_after_seconds:

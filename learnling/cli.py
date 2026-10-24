@@ -273,6 +273,70 @@ def cmd_live(args: argparse.Namespace) -> None:
     _maybe_save_report(result.orchestrator, args.save_report)
 
 
+def cmd_stand(args: argparse.Namespace) -> None:
+    from learnling.asr.sherpa import SherpaStreamingASR
+    from learnling import buddy as buddy_mod, emailer, live, live_io, stand
+
+    passage_text = Path(args.passage).read_text().strip()
+    try:
+        recognizer = SherpaStreamingASR(args.model)
+        voice = live_io.PreparedVoice(
+            live_io.OfflineVoice(args.voice, speed=args.voice_speed, speaker=args.voice_id)
+        ) if args.voice else None
+    except ImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+    chat = buddy_mod.OllamaChat(args.llm)
+    print(f"Loading {args.llm}...")
+    try:
+        chat.warm_up()
+    except Exception as exc:  # noqa: BLE001 - any failure means the model isn't usable
+        print(f"error: could not reach {args.llm} through Ollama ({exc}). "
+              f"Is Ollama installed, and has 'ollama pull {args.llm}' finished?", file=sys.stderr)
+        raise SystemExit(1) from exc
+    buddy = buddy_mod.ReadingBuddy(passage_text, args.age, chat=chat)
+
+    questions = _approve_questions(buddy.questions(args.questions)) if args.questions else []
+
+    if voice is not None:
+        orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
+        fixed = [live.orchestrator_say(orchestrator, "Say 'read' when you're ready to start.")]
+        voice.prepare(fixed + [buddy.spoken(q) for q in questions] + live.lines_for_passage(passage_text, args.age))
+
+    light = live_io.ListeningLight(args.led_pin)
+    speaker = live_io.Speaker(voice, light=light)
+    session = stand.run_stand(
+        passage_text, recognizer,
+        lambda seconds: live_io.mic_chunks(speaker, seconds, enter_stops=False),
+        speaker, buddy, questions, age_years=args.age, light=light, wake=not args.no_wake,
+    )
+    light.off()
+
+    body = emailer.report_text(session)
+    print("\n" + body)
+    if args.email_to:
+        try:
+            emailer.send_report(args.email_to, body)
+            print(f"Emailed the report to {args.email_to}")
+        except Exception as exc:  # noqa: BLE001 - the session is over; say why and keep the report
+            print(f"Could not email the report: {exc}", file=sys.stderr)
+    _maybe_save_report(session.orchestrator, args.save_report)
+
+
+def _approve_questions(questions: list[str], prompt=input) -> list[str]:
+    """The adult checks each question before the reader hears it."""
+    print("\nQuestions for after the reading. Press Enter to keep one, type a new one to replace it,")
+    print("or type - to drop it.")
+    approved = []
+    for question in questions:
+        answer = prompt(f"  {question}\n  > ").strip()
+        if answer == "-":
+            continue
+        approved.append(answer or question)
+    return approved
+
+
 class _Lazy:
     """An iterable built only when first iterated, so the second read waits its turn."""
 
@@ -375,6 +439,23 @@ def build_parser() -> argparse.ArgumentParser:
     live_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
     live_parser.add_argument("--save-report", help="Write a session report to this path")
     live_parser.set_defaults(func=cmd_live)
+
+    stand_parser = subparsers.add_parser(
+        "stand", help="A hands-free session on the book stand: started by voice, with a small model on the stand"
+    )
+    stand_parser.add_argument("--passage", required=True, help="Path to a passage text file")
+    stand_parser.add_argument("--model", required=True, help="Folder of a sherpa-onnx streaming model")
+    stand_parser.add_argument("--voice", help="Folder of a sherpa-onnx voice (VITS, Kokoro or Kitten)")
+    stand_parser.add_argument("--voice-id", type=int, default=0, help="Speaker number in a Kokoro or Kitten voice")
+    stand_parser.add_argument("--voice-speed", type=float, default=0.95, help="Speaking speed (default 0.95)")
+    stand_parser.add_argument("--llm", default="gemma3:1b", help="Ollama model on the stand (default gemma3:1b)")
+    stand_parser.add_argument("--age", type=int, default=8, help="Reader's age in years (default 8)")
+    stand_parser.add_argument("--questions", type=int, default=2, help="Story questions after reading (default 2)")
+    stand_parser.add_argument("--no-wake", action="store_true", help="Start straight away, without waiting for \"I'm ready\"")
+    stand_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
+    stand_parser.add_argument("--email-to", help="Email the report here (needs LEARNLING_SMTP_USER and LEARNLING_SMTP_PASSWORD)")
+    stand_parser.add_argument("--save-report", help="Write a session report to this path")
+    stand_parser.set_defaults(func=cmd_stand)
 
     pilot_parser = subparsers.add_parser(
         "pilot", help="Record-only sessions for the family pilot (see docs/raspberry-pi.md)"

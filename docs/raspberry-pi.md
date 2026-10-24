@@ -74,6 +74,42 @@ python -m learnling live --passage passages/sample_level1.txt \
     --voice ~/models/vits-piper-en_US-amy-low --led-pin 17 --age 6
 ```
 
+## Hands-free session
+
+`learnling stand` runs a whole session by voice, with nobody at the keyboard once it starts. The
+reader says "I'm ready to read", says "read" to start each read, and "done" if they want to stop
+early. Between reads a small language model running on the stand talks with them: it reacts to the
+read, asks two questions about the story and answers what they say. Hints during reading still come
+from the rules, because they have to arrive within seconds and never say the word.
+
+Everything stays on the stand: the model only sees the passage, simple reading numbers and the words
+the recogniser heard, and the reader's answers are not kept. The only thing that leaves is the
+report email, if you ask for one.
+
+Install the model once (it needs about 1 GB):
+
+```
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull gemma3:1b
+```
+
+Then:
+
+```
+python -m learnling stand --passage passages/sample_level1.txt \
+    --model ~/models/nemotron-560 --voice ~/models/vits-piper-en_US-amy-low --age 6 \
+    --email-to you@example.com
+```
+
+Before it starts listening, it shows the model's questions; keep, change or drop each one. For the
+email, set `LEARNLING_SMTP_USER` and `LEARNLING_SMTP_PASSWORD` (a Gmail app password). The email
+holds only numbers and practice words, with no name, audio or transcript; check the consent form
+covers who it goes to.
+
+The model's lines are new every time, so the voice has to keep up: a Piper or Kitten voice does, a
+Kokoro voice is slow on a Pi. Hint lines for the passage are made in the background while the stand
+waits for the reader.
+
 ## Family pilot: record only
 
 The first children read with learnling silent: no hints, no corrections, no score. The stand only records,
