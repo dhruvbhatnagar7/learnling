@@ -242,17 +242,25 @@ class Speaker:
             self.muted.clear()
 
 
+#: Rates the sound card has already refused, so it is asked only once.
+_REFUSED_RATES: dict[str, set[int]] = {"input": set(), "output": set()}
+
+
 def _play(sd, samples, rate: int) -> None:  # pragma: no cover - needs real hardware
     """Play, converting to the speaker's own rate if it refuses this one (as some USB speakerphones do)."""
     import numpy as np
 
-    try:
-        sd.play(samples, rate)
-    except sd.PortAudioError:
-        device_rate = int(sd.query_devices(kind="output")["default_samplerate"])
-        x = np.asarray(samples, dtype=np.float32)
-        n = int(len(x) * device_rate / rate)
-        sd.play(np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32), device_rate)
+    if rate not in _REFUSED_RATES["output"]:
+        try:
+            sd.play(samples, rate)
+            sd.wait()
+            return
+        except sd.PortAudioError:
+            _REFUSED_RATES["output"].add(rate)
+    device_rate = int(sd.query_devices(kind="output")["default_samplerate"])
+    x = np.asarray(samples, dtype=np.float32)
+    n = int(len(x) * device_rate / rate)
+    sd.play(np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32), device_rate)
     sd.wait()
 
 
@@ -301,14 +309,16 @@ def _open_input(sd, callback):  # pragma: no cover - needs real hardware
     Some USB speakerphones only record at 44.1 or 48 kHz; the audio is then
     converted to 16 kHz as it arrives.
     """
-    try:
-        rate = SAMPLE_RATE
-        stream = sd.RawInputStream(samplerate=rate, channels=1, dtype="int16",
-                                   blocksize=int(rate * CHUNK_SECONDS), callback=callback)
-    except sd.PortAudioError:
-        rate = int(sd.query_devices(kind="input")["default_samplerate"])
-        stream = sd.RawInputStream(samplerate=rate, channels=1, dtype="int16",
-                                   blocksize=int(rate * CHUNK_SECONDS), callback=callback)
+    if SAMPLE_RATE not in _REFUSED_RATES["input"]:
+        try:
+            stream = sd.RawInputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16",
+                                       blocksize=int(SAMPLE_RATE * CHUNK_SECONDS), callback=callback)
+            return stream, SAMPLE_RATE
+        except sd.PortAudioError:
+            _REFUSED_RATES["input"].add(SAMPLE_RATE)
+    rate = int(sd.query_devices(kind="input")["default_samplerate"])
+    stream = sd.RawInputStream(samplerate=rate, channels=1, dtype="int16",
+                               blocksize=int(rate * CHUNK_SECONDS), callback=callback)
     return stream, rate
 
 

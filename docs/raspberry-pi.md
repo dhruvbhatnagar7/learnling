@@ -77,8 +77,8 @@ python -m learnling live --passage passages/sample_level1.txt \
 ## Hands-free session
 
 `learnling stand` runs a whole session by voice, with nobody at the keyboard once it starts. The
-reader says "I'm ready to read", says "read" to start each read, and "done" if they want to stop
-early. Between reads a small language model running on the stand talks with them: it reacts to the
+reader says "I'm ready to read", starts each read when the stand says "Go!", and can say "done" or
+"stop" to finish early. Between reads a small language model running on the stand talks with them: it reacts to the
 read, asks two questions about the story and answers what they say. Hints during reading still come
 from the rules, because they have to arrive within seconds and never say the word.
 

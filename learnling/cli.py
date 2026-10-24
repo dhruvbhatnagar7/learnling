@@ -303,7 +303,7 @@ def cmd_stand(args: argparse.Namespace) -> None:
 
     if voice is not None:
         orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
-        fixed = [live.orchestrator_say(orchestrator, "Say 'read' when you're ready to start.")]
+        fixed = [live.orchestrator_say(orchestrator, stand.GO_LINE)]
         voice.prepare(fixed + [buddy.spoken(q) for q in questions] + live.lines_for_passage(passage_text, args.age))
 
     light = live_io.ListeningLight(args.led_pin)

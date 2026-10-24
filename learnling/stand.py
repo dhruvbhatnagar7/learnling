@@ -28,8 +28,10 @@ from learnling.models import LearnerProfile
 from learnling.orchestrator import Orchestrator
 
 WAKE_WORDS = ("ready",)
-#: "read" on its own is often written down as "red".
-START_WORDS = ("read", "red", "ready", "go", "start")
+#: What the stand says to start each read. The reader starts straight after
+#: it; there is no word for them to say first, since a single short word like
+#: "read" is easily missed.
+GO_LINE = "When I say go, start reading. Ready? Go!"
 
 #: How long one listening window lasts while waiting for a word; the
 #: recogniser starts fresh each window so a long wait doesn't pile up.
@@ -123,9 +125,7 @@ def run_stand(
     speak(buddy.greet())
 
     def reading(hints: bool):
-        speak(_line(orchestrator, "Say 'read' when you're ready to start."))
-        if not wait_for(recognizer, open_mic, START_WORDS, light, tries=6, on_status=on_status):
-            on_status("  (no 'read' heard; starting the read anyway)")
+        speak(_line(orchestrator, GO_LINE))
         if light:
             light.on()
         coach = ReadingCoach(passage_text, recognizer, age_years=age_years, hints=hints)

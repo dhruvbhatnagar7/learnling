@@ -64,9 +64,7 @@ def test_done_on_the_page_is_read_not_obeyed():
 def test_a_whole_session_by_voice():
     rec = PhaseRecognizer([
         [(1.0, "im ready to read")],          # wake
-        [(1.0, "read")],                      # start the first read
         [(0.5, "the big"), (6.0, "the big dog ran to the park")],  # stuck on "dog"
-        [(1.0, "read")],                      # start the second read
         [(0.5, PASSAGE), (1.0, PASSAGE + " done")],
         [(1.0, "it ran to the park")],        # answer to the question
     ])

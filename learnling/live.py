@@ -222,7 +222,7 @@ class LiveSessionResult:
 
 
 #: What a reader can say to end a reading early.
-STOP_WORDS = ("done", "finished")
+STOP_WORDS = ("done", "finished", "stop")
 
 
 def said_stop_word(coach: ReadingCoach) -> bool:
