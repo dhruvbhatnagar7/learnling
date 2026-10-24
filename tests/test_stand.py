@@ -85,7 +85,7 @@ def test_a_whole_session_by_voice():
     assert "done" not in second.transcript
 
     report = report_text(session)
-    assert "Words it gave a hint for on the first read: dog." in report
+    assert "It gave a hint for: dog." in report
     assert "it ran to the park" not in report
     assert "not yet accurate on children's voices" in report
 

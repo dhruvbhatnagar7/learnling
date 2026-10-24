@@ -37,17 +37,14 @@ def report_text(session) -> str:
         wcpm = stat.get("wcpm")
         lines.append(f"{label}: {accuracy} of words matched the page"
                      + (f", {wcpm} words correct per minute." if wcpm is not None else "."))
-    if words_helped:
-        lines.append("Words it gave a hint for on the first read: " + ", ".join(words_helped) + ".")
-    else:
-        lines.append("No hints needed on the first read.")
-    practise = []
-    for stat in summary["reading_stats"][1:]:
-        for entry in stat["words_to_look_at"]:
-            if entry["sure"] and entry["kind"] in ("substitution", "omission") and entry["word"] not in practise:
-                practise.append(entry["word"])
-    if practise:
-        lines.append("Words to practise: " + ", ".join(practise) + ".")
+        missed = _missed_words(stat)
+        if missed:
+            lines.append("  Words that didn't match: " + ", ".join(missed) + ".")
+        if i == 1:
+            if words_helped:
+                lines.append("  It gave a hint for: " + ", ".join(words_helped) + ".")
+            else:
+                lines.append("  No hints needed.")
     lines.append(f"Story questions talked about: {questions_asked}.")
     lines += [
         "",
@@ -55,6 +52,16 @@ def report_text(session) -> str:
         "so treat these numbers as a rough guide and listen for yourself.",
     ]
     return "\n".join(lines) + "\n"
+
+
+def _missed_words(stat: dict) -> list[str]:
+    """Page words read differently or skipped, where the recogniser was sure."""
+    missed = []
+    for entry in stat["words_to_look_at"]:
+        if entry["sure"] and entry["kind"] in ("substitution", "omission") and entry["word"] not in missed:
+            word = entry["word"]
+            missed.append(f"{word} (read as {entry['read_as']})" if entry.get("read_as") else f"{word} (skipped)")
+    return missed
 
 
 def send_report(to: str, body: str, subject: str | None = None) -> None:
