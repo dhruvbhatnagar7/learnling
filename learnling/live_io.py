@@ -83,13 +83,13 @@ class CloudVoice:
 
     Only learnling's own sentences are sent; the reader's voice and words never
     are. Needs `OPENAI_API_KEY`. `name` is one of OpenAI's voices, such as
-    coral, nova or shimmer.
+    marin, cedar or coral.
     """
 
     URL = "https://api.openai.com/v1/audio/speech"
     RATE = 24000  # OpenAI's raw "pcm" output: 24 kHz, 16-bit, mono
 
-    def __init__(self, name: str = "coral", model: str = "gpt-4o-mini-tts",
+    def __init__(self, name: str = "marin", model: str = "gpt-4o-mini-tts",
                  style: str = "Warm, gentle and playful, like a friendly reading buddy talking to a young "
                               "child. Unhurried, clear and encouraging.",
                  api_key: str | None = None, timeout: float = 30.0):
@@ -121,9 +121,9 @@ class CloudVoice:
 
 
 def make_voice(spec: str, speed: float = 0.95, speaker: int = 0):
-    """`openai:coral` for the cloud voice, otherwise a folder of an offline voice."""
+    """`openai:marin` for the cloud voice, otherwise a folder of an offline voice."""
     if spec.startswith("openai:"):
-        return CloudVoice(spec.split(":", 1)[1] or "coral")
+        return CloudVoice(spec.split(":", 1)[1] or "marin")
     return OfflineVoice(spec, speed=speed, speaker=speaker)
 
 

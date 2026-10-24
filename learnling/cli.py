@@ -431,7 +431,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     live_parser.add_argument("--passage", required=True, help="Path to a passage text file")
     live_parser.add_argument("--model", required=True, help="Folder of a sherpa-onnx streaming model")
-    live_parser.add_argument("--voice", help="Folder of a sherpa-onnx voice, or openai:coral; without it, learnling prints instead of speaking")
+    live_parser.add_argument("--voice", help="Folder of a sherpa-onnx voice, or openai:marin; without it, learnling prints instead of speaking")
     live_parser.add_argument("--age", type=int, default=8, help="Reader's age in years (default 8)")
     live_parser.add_argument(
         "--audio", action="append",
@@ -448,7 +448,7 @@ def build_parser() -> argparse.ArgumentParser:
     stand_parser.add_argument("--passage", required=True, help="Path to a passage text file")
     stand_parser.add_argument("--model", required=True, help="Folder of a sherpa-onnx streaming model")
     stand_parser.add_argument("--voice", help="Folder of a sherpa-onnx voice (VITS, Kokoro or Kitten), "
-                              "or openai:coral for OpenAI's natural voice (sends only learnling's own lines)")
+                              "or openai:marin for OpenAI's natural voice (sends only learnling's own lines)")
     stand_parser.add_argument("--voice-id", type=int, default=0, help="Speaker number in a Kokoro or Kitten voice")
     stand_parser.add_argument("--voice-speed", type=float, default=0.95, help="Speaking speed (default 0.95)")
     stand_parser.add_argument("--llm", default="gemma3:1b", help="Ollama model on the stand (default gemma3:1b), or openai:MODEL to use "

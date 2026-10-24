@@ -110,7 +110,7 @@ The model's lines are new every time, so the voice has to keep up: a Piper or Ki
 Kokoro voice is slow on a Pi. Hint lines for the passage are made in the background while the stand
 waits for the reader.
 
-The offline voices sound robotic to children. For a natural voice, pass `--voice openai:coral` and set
+The offline voices sound robotic to children. For a natural voice, pass `--voice openai:marin` and set
 `OPENAI_API_KEY`: learnling's own lines are sent to OpenAI's text-to-speech service and come back as
 speech. The reader's voice and words are never sent.
 
