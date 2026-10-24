@@ -1,7 +1,9 @@
 # Building the book stand on a Raspberry Pi
 
 The same `learnling live` that runs on a laptop, on a small computer in a book stand, with a microphone, a
-speaker and a listening light. This guide has not been tried on a Pi yet; expect to adjust it.
+speaker and a listening light. The setup and the record-only pilot below were tried on a Raspberry Pi 5
+(8 GB) with a USB speakerphone in October 2026. Live hints have not been run on a Pi yet; expect to adjust
+that part.
 
 ## Parts
 
@@ -43,8 +45,27 @@ pip install -e ".[live]"
 ```
 
 3. Download a recognition model and a voice into `~/models` (see `docs/live-reading.md`). Start with the
-   smaller recognition model; try the larger one if the Pi keeps up.
+   smaller recognition model; try the larger one if the Pi keeps up. The record-only pilot below needs
+   no models, so you can skip this step for it.
 4. Check the speakerphone is the default input and output: `arecord -l` and `aplay -l` should list it.
+   Some USB speakerphones can't record at 16 kHz, the rate learnling uses, which shows up as
+   `Invalid sample rate` the first time you record. Tell the Pi to convert for you. Use the short card
+   name that `arecord -l` prints after the card number: for `card 2: A01 [AIRHUG 01]` it is `A01`.
+
+```
+cat > ~/.asoundrc <<'EOF'
+pcm.!default { type plug slave.pcm "hw:CARD=A01,DEV=0" }
+ctl.!default { type hw card A01 }
+EOF
+```
+
+   Then check it with a short test, played back through the speakerphone:
+
+```
+python -c "from learnling.record import record_until_enter, write_wav; write_wav('test.wav', record_until_enter())"
+aplay test.wav
+```
+
 5. Run:
 
 ```
