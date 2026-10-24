@@ -78,6 +78,55 @@ class OfflineVoice:
         return list(audio.samples), audio.sample_rate
 
 
+class CloudVoice:
+    """A natural-sounding voice from OpenAI's text-to-speech service.
+
+    Only learnling's own sentences are sent; the reader's voice and words never
+    are. Needs `OPENAI_API_KEY`. `name` is one of OpenAI's voices, such as
+    coral, nova or shimmer.
+    """
+
+    URL = "https://api.openai.com/v1/audio/speech"
+    RATE = 24000  # OpenAI's raw "pcm" output: 24 kHz, 16-bit, mono
+
+    def __init__(self, name: str = "coral", model: str = "gpt-4o-mini-tts",
+                 style: str = "Warm, gentle and playful, like a friendly reading buddy talking to a young "
+                              "child. Unhurried, clear and encouraging.",
+                 api_key: str | None = None, timeout: float = 30.0):
+        import os
+
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        if not self.api_key:
+            raise RuntimeError("the cloud voice needs OPENAI_API_KEY set")
+        self.name, self.model, self.style, self.timeout = name, model, style, timeout
+
+    def request_body(self, text: str) -> dict:
+        return {"model": self.model, "voice": self.name, "input": text, "instructions": self.style,
+                "response_format": "pcm"}
+
+    def synthesize(self, text: str) -> tuple[list[float], int]:
+        import json
+        import urllib.request
+
+        import numpy as np
+
+        request = urllib.request.Request(
+            self.URL, data=json.dumps(self.request_body(text)).encode(),
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            pcm = response.read()
+        samples = np.frombuffer(pcm[: len(pcm) // 2 * 2], dtype=np.int16).astype(np.float32) / 32768.0
+        return samples.tolist(), self.RATE
+
+
+def make_voice(spec: str, speed: float = 0.95, speaker: int = 0):
+    """`openai:coral` for the cloud voice, otherwise a folder of an offline voice."""
+    if spec.startswith("openai:"):
+        return CloudVoice(spec.split(":", 1)[1] or "coral")
+    return OfflineVoice(spec, speed=speed, speaker=speaker)
+
+
 class PreparedVoice:
     """A voice that makes known lines ahead of time, in the background.
 

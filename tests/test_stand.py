@@ -120,3 +120,12 @@ def test_every_hint_line_for_a_passage_is_known_ahead():
     lines = lines_for_passage(PASSAGE, 8)
     assert "Take your time. That word starts with 'do'." in lines
     assert "That word is 'park'. Keep going." in lines
+
+
+def test_cloud_voice_sends_only_the_line_to_say():
+    from learnling.live_io import CloudVoice
+
+    voice = CloudVoice("coral", api_key="test")
+    body = voice.request_body("Take your time.")
+    assert body["input"] == "Take your time."
+    assert body["voice"] == "coral" and body["response_format"] == "pcm"
