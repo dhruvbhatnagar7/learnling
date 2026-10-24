@@ -184,9 +184,15 @@ def mic_chunks(speaker: Speaker, max_seconds: float):
 
 def recorded(chunks, timeline: list[bytes]):
     """Pass chunks through, keeping a copy on `timeline` for a demo recording."""
-    for pcm in chunks:
-        timeline.append(pcm)
-        yield pcm
+    chunks = iter(chunks)
+    try:
+        for pcm in chunks:
+            timeline.append(pcm)
+            yield pcm
+    finally:
+        close = getattr(chunks, "close", None)
+        if close is not None:
+            close()
 
 
 def write_demo(path: str | Path, pieces: list[bytes]) -> None:

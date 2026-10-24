@@ -212,14 +212,23 @@ def run_reading(coach: ReadingCoach, chunks, speak, done_after_seconds: float = 
     not cut off.
     """
     finished_at = None
-    for pcm in chunks:
-        event = coach.feed(pcm)
-        if event is not None:
-            speak(event.spoken)
-        if coach.finished and finished_at is None:
-            finished_at = coach.heard_seconds
-        if finished_at is not None and coach.heard_seconds - finished_at >= done_after_seconds:
-            break
+    chunks = iter(chunks)
+    try:
+        for pcm in chunks:
+            event = coach.feed(pcm)
+            if event is not None:
+                speak(event.spoken)
+            if coach.finished and finished_at is None:
+                finished_at = coach.heard_seconds
+            if finished_at is not None and coach.heard_seconds - finished_at >= done_after_seconds:
+                break
+    finally:
+        # Let go of the microphone now rather than whenever the generator is
+        # garbage collected: on a Raspberry Pi the second read cannot open a
+        # microphone the first read still holds.
+        close = getattr(chunks, "close", None)
+        if close is not None:
+            close()
     return coach.finish()
 
 

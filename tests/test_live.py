@@ -115,6 +115,21 @@ def test_reading_ends_soon_after_the_last_word():
     assert coach.heard_seconds < 3
 
 
+def test_reading_lets_go_of_the_microphone_when_it_ends():
+    released = []
+
+    def microphone():
+        try:
+            while True:
+                yield TENTH
+        finally:
+            released.append(True)
+
+    mic = microphone()  # still referenced, as run_session's argument is
+    run_reading(_coach([(0.5, PASSAGE)]), mic, lambda text: None)
+    assert released == [True]
+
+
 def test_session_reads_twice_and_reports_fluency():
     spoken = []
     script = [(1.0, PASSAGE)]
