@@ -184,8 +184,9 @@ class ReadingBuddy:
         return self.say(
             f"The child just finished reading the story out loud for the first time. {how} About "
             f"{accuracy:.0%} of the words matched the page. Tell them one specific, honest, kind thing about "
-            "their reading, then say you'll read it once more and this time think about what happens.",
-            "Nice reading! Let's read it once more, and this time think about what happens.",
+            "their reading, then tell the child that THEY will now read the same story again by themselves, and "
+            "should think about what happens in it. You do not read it; the child does.",
+            "Nice reading! Now read it once more by yourself, and think about what happens.",
         )
 
     def questions(self, how_many: int = 2) -> list[str]:
