@@ -10,8 +10,8 @@ lines, through Ollama (https://ollama.com):
 
 The model only ever sees text: the passage, simple reading numbers, and the
 words the speech recogniser heard. It never hears audio, and nothing it sees
-leaves the stand. What it says passes through the same safety gate and age
-shaping as every other line (`safety.check_output`, `adaptation.shape`).
+leaves the stand. What it says passes through the same safety gate as every other line
+(`safety.check_output`), and the young-reader word swaps in `adaptation.py`.
 
 Hints while the reader is reading do not come from here. They have to arrive
 within seconds and must never say the word, so they stay with the rules in
@@ -27,7 +27,7 @@ import json
 import re
 import urllib.request
 
-from learnling.adaptation import shape
+from learnling.adaptation import _simplify_words, shape
 from learnling.models import LearnerProfile
 from learnling.safety import check_output
 
@@ -122,7 +122,11 @@ class ReadingBuddy:
         if not text:
             text = fallback
         self.history += [{"role": "user", "content": instruction}, {"role": "assistant", "content": text}]
-        return shape(check_output(text), self.age_band)
+        # The model already keeps it short; cutting its sentences at a word
+        # count ("the cat was sitting. On the mat") sounds worse than a
+        # slightly long one, so only the young-reader word swaps apply.
+        safe = check_output(text)
+        return _simplify_words(safe) if self.age_band == "4-6" else safe
 
     def greet(self) -> str:
         return self.say(
