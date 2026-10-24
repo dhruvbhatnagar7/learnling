@@ -217,17 +217,42 @@ def mic_chunks(speaker: Speaker, max_seconds: float, enter_stops: bool = True):
     if enter_stops:
         threading.Thread(target=wait_for_enter, daemon=True).start()
     heard = 0.0
-    with sd.RawInputStream(  # pragma: no cover - needs real hardware
-        samplerate=SAMPLE_RATE, channels=1, dtype="int16",
-        blocksize=int(SAMPLE_RATE * CHUNK_SECONDS), callback=callback,
-    ):
+    stream, rate = _open_input(sd, callback)  # pragma: no cover - needs real hardware
+    with stream:  # pragma: no cover - needs real hardware
         while not stop.is_set() and heard < max_seconds:
             try:
                 pcm = chunks.get(timeout=0.5)
             except queue.Empty:
                 continue
+            if rate != SAMPLE_RATE:
+                pcm = resample_pcm16(pcm, rate)
             heard += len(pcm) / 2 / SAMPLE_RATE
             yield pcm
+
+
+def _open_input(sd, callback):  # pragma: no cover - needs real hardware
+    """A 16 kHz input stream, or the device's own rate if it refuses 16 kHz.
+
+    Some USB speakerphones only record at 44.1 or 48 kHz; the audio is then
+    converted to 16 kHz as it arrives.
+    """
+    try:
+        rate = SAMPLE_RATE
+        stream = sd.RawInputStream(samplerate=rate, channels=1, dtype="int16",
+                                   blocksize=int(rate * CHUNK_SECONDS), callback=callback)
+    except sd.PortAudioError:
+        rate = int(sd.query_devices(kind="input")["default_samplerate"])
+        stream = sd.RawInputStream(samplerate=rate, channels=1, dtype="int16",
+                                   blocksize=int(rate * CHUNK_SECONDS), callback=callback)
+    return stream, rate
+
+
+def resample_pcm16(pcm: bytes, rate: int) -> bytes:
+    """16-bit mono audio at `rate` to 16 kHz."""
+    import numpy as np
+
+    x = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+    return to_pcm16(x, rate)
 
 
 def recorded(chunks, timeline: list[bytes]):
