@@ -288,13 +288,14 @@ def cmd_stand(args: argparse.Namespace) -> None:
         raise SystemExit(1) from exc
 
     print(f"Passage:\n\n  {passage_text}\n")
-    chat = buddy_mod.OllamaChat(args.llm)
     print(f"Loading {args.llm}...")
     try:
+        chat = buddy_mod.make_chat(args.llm)
         chat.warm_up()
     except Exception as exc:  # noqa: BLE001 - any failure means the model isn't usable
-        print(f"error: could not reach {args.llm} through Ollama ({exc}). "
-              f"Is Ollama installed, and has 'ollama pull {args.llm}' finished?", file=sys.stderr)
+        hint = ("Is OPENAI_API_KEY set?" if args.llm.startswith("openai:")
+                else f"Is Ollama installed, and has 'ollama pull {args.llm}' finished?")
+        print(f"error: could not reach {args.llm} ({exc}). {hint}", file=sys.stderr)
         raise SystemExit(1) from exc
     buddy = buddy_mod.ReadingBuddy(passage_text, args.age, chat=chat)
 
@@ -450,7 +451,8 @@ def build_parser() -> argparse.ArgumentParser:
                               "or openai:coral for OpenAI's natural voice (sends only learnling's own lines)")
     stand_parser.add_argument("--voice-id", type=int, default=0, help="Speaker number in a Kokoro or Kitten voice")
     stand_parser.add_argument("--voice-speed", type=float, default=0.95, help="Speaking speed (default 0.95)")
-    stand_parser.add_argument("--llm", default="gemma3:1b", help="Ollama model on the stand (default gemma3:1b)")
+    stand_parser.add_argument("--llm", default="gemma3:1b", help="Ollama model on the stand (default gemma3:1b), or openai:MODEL to use "
+                              "OpenAI's cloud (sends the reader's words as text; check the consent form)")
     stand_parser.add_argument("--age", type=int, default=8, help="Reader's age in years (default 8)")
     stand_parser.add_argument("--questions", type=int, default=2, help="Story questions after reading (default 2)")
     stand_parser.add_argument("--no-wake", action="store_true", help="Start straight away, without waiting for \"I'm ready\"")

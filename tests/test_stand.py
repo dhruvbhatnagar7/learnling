@@ -129,3 +129,10 @@ def test_cloud_voice_sends_only_the_line_to_say():
     body = voice.request_body("Take your time.")
     assert body["input"] == "Take your time."
     assert body["voice"] == "coral" and body["response_format"] == "pcm"
+
+
+def test_cloud_model_is_chosen_by_name():
+    from learnling.buddy import OllamaChat, OpenAIChat, make_chat
+
+    assert isinstance(make_chat("gemma3:1b"), OllamaChat)
+    assert isinstance(OpenAIChat(api_key="test"), OpenAIChat)

@@ -114,6 +114,10 @@ The offline voices sound robotic to children. For a natural voice, pass `--voice
 `OPENAI_API_KEY`: learnling's own lines are sent to OpenAI's text-to-speech service and come back as
 speech. The reader's voice and words are never sent.
 
+For a stronger model than the stand can run, pass `--llm openai:gpt-4.1-mini`. That one does send the
+conversation as text to OpenAI, including the words the reader said (never audio), so only use it
+when the consent form covers it.
+
 ## Family pilot: record only
 
 The first children read with learnling silent: no hints, no corrections, no score. The stand only records,

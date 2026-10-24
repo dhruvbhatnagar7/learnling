@@ -9,8 +9,9 @@ lines, through Ollama (https://ollama.com):
     ollama pull gemma3:1b
 
 The model only ever sees text: the passage, simple reading numbers, and the
-words the speech recogniser heard. It never hears audio, and nothing it sees
-leaves the stand. What it says passes through the same safety gate as every other line
+words the speech recogniser heard. It never hears audio, and with a model on
+the stand nothing it sees leaves the stand. `--llm openai:MODEL` uses OpenAI's
+cloud instead (`OpenAIChat`), which sends that text off the stand. What it says passes through the same safety gate as every other line
 (`safety.check_output`), and the young-reader word swaps in `adaptation.py`.
 
 Hints while the reader is reading do not come from here. They have to arrive
@@ -60,6 +61,46 @@ class OllamaChat:
     def warm_up(self) -> None:
         """Load the model now, so the first real line isn't slow."""
         self([{"role": "user", "content": "Say hi."}], max_words=3)
+
+
+class OpenAIChat:
+    """A chat model in OpenAI's cloud, for when the stand's own model isn't enough.
+
+    Unlike `OllamaChat`, this sends the conversation off the stand: the
+    passage, the reading numbers and the words the recogniser heard the
+    reader say. Never audio. Only use it when the consent form says so.
+    Needs `OPENAI_API_KEY`.
+    """
+
+    URL = "https://api.openai.com/v1/chat/completions"
+
+    def __init__(self, model: str = "gpt-4.1-mini", api_key: str | None = None, timeout: float = 30.0):
+        import os
+
+        self.model = model
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        if not self.api_key:
+            raise RuntimeError("the cloud model needs OPENAI_API_KEY set")
+        self.timeout = timeout
+
+    def __call__(self, messages: list[dict], max_words: int = 40) -> str:
+        body = {"model": self.model, "messages": messages, "max_completion_tokens": int(max_words * 3)}
+        request = urllib.request.Request(
+            self.URL, data=json.dumps(body).encode(),
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            return json.loads(response.read())["choices"][0]["message"]["content"]
+
+    def warm_up(self) -> None:
+        self([{"role": "user", "content": "Say hi."}], max_words=3)
+
+
+def make_chat(spec: str):
+    """`openai:MODEL` for OpenAI's cloud, otherwise an Ollama model on this machine."""
+    if spec.startswith("openai:"):
+        return OpenAIChat(spec.split(":", 1)[1] or "gpt-4.1-mini")
+    return OllamaChat(spec)
 
 
 _MARKUP = re.compile(r"[*_#`~>\[\]]|[\U0001F000-\U0001FFFF☀-➿]")
