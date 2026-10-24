@@ -3,10 +3,10 @@
     python -m learnling stand --passage passages/sample_level1.txt --model PATH --voice PATH
 
 1. The stand waits, listening, until the reader says "I'm ready to read".
-2. The reading buddy (a small model on the stand, see `buddy.py`) greets them.
-   They say "read" and read the story, with hints if they get stuck. The read
-   ends at the last word, or when they say "done".
-3. The buddy says something about the read, they say "read" again, and read
+2. The reading buddy (a language model, see `buddy.py`) greets them. The
+   stand says "Ready? Go!" and they read the story, with hints if they get
+   stuck. The read ends at the last word, or when they say "done" or "stop".
+3. The buddy says something about the read, and on the next "Go!" they read
    it once more with no hints.
 4. The buddy asks the questions the adult approved before the session, and
    answers what the reader says.
