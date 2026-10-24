@@ -287,6 +287,7 @@ def cmd_stand(args: argparse.Namespace) -> None:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 
+    print(f"Passage:\n\n  {passage_text}\n")
     chat = buddy_mod.OllamaChat(args.llm)
     print(f"Loading {args.llm}...")
     try:

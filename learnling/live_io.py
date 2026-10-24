@@ -133,6 +133,7 @@ class ListeningLight:
 
     def __init__(self, gpio_pin: int | None = None):
         self._led = None
+        self._lit = False
         if gpio_pin is not None:
             from gpiozero import LED
 
@@ -141,14 +142,16 @@ class ListeningLight:
     def on(self) -> None:
         if self._led:
             self._led.on()
-        else:
+        elif not self._lit:
             print("  [light on: listening]")
+        self._lit = True
 
     def off(self) -> None:
         if self._led:
             self._led.off()
-        else:
+        elif self._lit:
             print("  [light off]")
+        self._lit = False
 
 
 class Speaker:
