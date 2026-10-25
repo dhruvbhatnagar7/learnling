@@ -68,3 +68,9 @@ def test_the_page_rejects_non_photos_and_tiny_stories(server):
     base, _ = server
     assert "error" in _post(base + "/read", b"hello", "text/plain")
     assert "error" in _post(base + "/save", json.dumps({"text": "hi"}).encode(), "application/json")
+
+
+def test_a_long_story_is_saved_with_a_warning(server):
+    base, _ = server
+    reply = _post(base + "/save", json.dumps({"text": "word " * 300}).encode(), "application/json")
+    assert reply["saved"] and "long" in reply["warning"]

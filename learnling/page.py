@@ -28,6 +28,8 @@ from pathlib import Path
 PASSAGE_FOLDER = Path.home() / "learnling-passages"
 TODAY = "today.txt"
 MAX_PHOTO_BYTES = 15 * 1024 * 1024
+#: Two reads of a story longer than this is too long a sitting for a young reader.
+LONG_STORY_WORDS = 200
 
 _READ_PAGE = (
     "This is a photo of a page from a child's reading book or school reading sheet. Write out the "
@@ -133,7 +135,12 @@ def make_handler(ask, folder: Path | None = None):
                 if len(text.split()) < 3:
                     return self._json(400, {"error": "That's too short for a story."})
                 save_passage(text, folder)
-                return self._json(200, {"saved": True, "words": len(text.split())})
+                words = len(text.split())
+                reply = {"saved": True, "words": words}
+                if words > LONG_STORY_WORDS:
+                    reply["warning"] = (f"That's long for one session ({words} words). About 50 to 150 words "
+                                        "works best; you can delete some and save again.")
+                return self._json(200, reply)
             self._json(404, {"error": "not found"})
 
     return Handler
@@ -201,7 +208,7 @@ document.getElementById("save").addEventListener("click", async () => {
     const r = await fetch("/save", {method: "POST", headers: {"Content-Type": "application/json"},
                                      body: JSON.stringify({text: text.value})});
     const data = await r.json();
-    status.textContent = data.saved ? `Saved (${data.words} words). The stand will read this story next.` : (data.error || "Something went wrong.");
+    status.textContent = data.saved ? (data.warning || `Saved (${data.words} words). The stand will read this story next.`) : (data.error || "Something went wrong.");
   } catch (err) { status.textContent = "Couldn't reach the stand."; }
 });
 </script>
