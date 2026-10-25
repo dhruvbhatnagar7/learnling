@@ -310,7 +310,12 @@ def cmd_stand(args: argparse.Namespace) -> None:
     if voice is not None:
         orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
         fixed = [live.orchestrator_say(orchestrator, stand.GO_LINE)]
-        voice.prepare(fixed + [buddy.spoken(q) for q in questions] + live.lines_for_passage(passage_text, args.age))
+        lines = fixed + [buddy.spoken(q) for q in questions]
+        # A cloud voice answers in about a second, quick enough for a hint, so
+        # only a slow voice on the stand makes every hint line ahead of time.
+        if not isinstance(voice.voice, live_io.CloudVoice):
+            lines += live.lines_for_passage(passage_text, args.age)
+        voice.prepare(lines)
 
     light = live_io.ListeningLight(args.led_pin)
     speaker = live_io.Speaker(voice, light=light)
