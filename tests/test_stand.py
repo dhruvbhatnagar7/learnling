@@ -134,3 +134,17 @@ def test_cloud_model_is_chosen_by_name():
 
     assert isinstance(make_chat("gemma3:1b"), OllamaChat)
     assert isinstance(OpenAIChat(api_key="test"), OpenAIChat)
+
+
+def test_stopping_partway_is_scored_on_the_part_read():
+    long_passage = PASSAGE + " and then the dog sat down under a big green tree by the gate"
+    rec = PhaseRecognizer([
+        [(1.0, "im ready to read")],
+        [(0.5, "the big dog ran"), (1.0, "the big dog ran done")],
+        [(0.5, "the big dog ran to"), (1.0, "the big dog ran to stop")],
+    ])
+    buddy = ReadingBuddy(long_passage, 8, chat=FakeChat("Nice!"))
+    session = run_stand(long_passage, rec, open_mic, lambda text: None, buddy, [], on_status=lambda text: None)
+    first, second = [e["report_notes"]["reading_result"] for e in session.orchestrator.session.events]
+    assert first.accuracy == 1.0 and second.accuracy == 1.0
+    assert "skipped" not in report_text(session)

@@ -133,7 +133,12 @@ def run_stand(
         if light:
             light.off()
         on_status(f"  (read heard as: {utterance.text})")
+        # A reader who stops partway is scored on the part they read, not
+        # marked as skipping the rest of the page.
+        if not coach.finished and coach.tracker.position > 0:
+            orchestrator.load_passage(" ".join(coach.tracker.expected[:coach.tracker.position]))
         orchestrator.handle_utterance(_without_stop_word(utterance))
+        orchestrator.load_passage(passage_text)
         result = orchestrator.session.events[-1]["report_notes"]["reading_result"]
         return coach, result
 

@@ -39,7 +39,8 @@ def report_text(session) -> str:
                      + (f", {wcpm} words correct per minute." if wcpm is not None else "."))
         missed = _missed_words(stat)
         if missed:
-            lines.append("  Words that didn't match: " + ", ".join(missed) + ".")
+            more = f", and {len(missed) - _MAX_LISTED} more" if len(missed) > _MAX_LISTED else ""
+            lines.append("  Words that didn't match: " + ", ".join(missed[:_MAX_LISTED]) + more + ".")
         if i == 1:
             if words_helped:
                 lines.append("  It gave a hint for: " + ", ".join(words_helped) + ".")
@@ -52,6 +53,10 @@ def report_text(session) -> str:
         "so treat these numbers as a rough guide and listen for yourself.",
     ]
     return "\n".join(lines) + "\n"
+
+
+#: Enough words for an adult to act on; a longer list reads as noise.
+_MAX_LISTED = 6
 
 
 def _missed_words(stat: dict) -> list[str]:
