@@ -277,7 +277,13 @@ def cmd_stand(args: argparse.Namespace) -> None:
     from learnling.asr.sherpa import SherpaStreamingASR
     from learnling import buddy as buddy_mod, emailer, live, live_io, stand
 
-    passage_text = Path(args.passage).read_text().strip()
+    from learnling.page import passage_path
+
+    try:
+        passage_text = passage_path(args.passage).read_text().strip()
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
     try:
         recognizer = SherpaStreamingASR(args.model)
         voice = live_io.PreparedVoice(
@@ -324,6 +330,17 @@ def cmd_stand(args: argparse.Namespace) -> None:
         except Exception as exc:  # noqa: BLE001 - the session is over; say why and keep the report
             print(f"Could not email the report: {exc}", file=sys.stderr)
     _maybe_save_report(session.orchestrator, args.save_report)
+
+
+def cmd_page(args: argparse.Namespace) -> None:
+    from learnling import page
+
+    try:
+        ask = page.openai_vision(args.vision_model)
+    except RuntimeError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    page.serve(ask, port=args.port)
 
 
 def _approve_questions(questions: list[str], prompt=input) -> list[str]:
@@ -445,7 +462,10 @@ def build_parser() -> argparse.ArgumentParser:
     stand_parser = subparsers.add_parser(
         "stand", help="A hands-free session on the book stand: started by voice, with a small model on the stand"
     )
-    stand_parser.add_argument("--passage", required=True, help="Path to a passage text file")
+    stand_parser.add_argument(
+        "--passage", required=True,
+        help="Path to a passage text file, or 'today' for the story saved from the phone page",
+    )
     stand_parser.add_argument("--model", required=True, help="Folder of a sherpa-onnx streaming model")
     stand_parser.add_argument("--voice", help="Folder of a sherpa-onnx voice (VITS, Kokoro or Kitten), "
                               "or openai:marin for OpenAI's natural voice (sends only learnling's own lines)")
@@ -460,6 +480,13 @@ def build_parser() -> argparse.ArgumentParser:
     stand_parser.add_argument("--email-to", help="Email the report here (needs LEARNLING_SMTP_USER and LEARNLING_SMTP_PASSWORD)")
     stand_parser.add_argument("--save-report", help="Write a session report to this path")
     stand_parser.set_defaults(func=cmd_stand)
+
+    page_parser = subparsers.add_parser(
+        "page", help="On the stand: a phone page for adding today's story from a photo"
+    )
+    page_parser.add_argument("--port", type=int, default=8000, help="Port to serve on (default 8000)")
+    page_parser.add_argument("--vision-model", default="gpt-4.1-mini", help="OpenAI model that reads the photo")
+    page_parser.set_defaults(func=cmd_page)
 
     pilot_parser = subparsers.add_parser(
         "pilot", help="Record-only sessions for the family pilot (see docs/raspberry-pi.md)"

@@ -118,6 +118,20 @@ For a stronger model than the stand can run, pass `--llm openai:gpt-4.1-mini`. T
 conversation as text to OpenAI, including the words the reader said (never audio), so only use it
 when the consent form covers it.
 
+### Today's story from a photo
+
+Instead of a passage file, a parent can add the child's school reading from their phone. On the stand:
+
+```
+python -m learnling page
+```
+
+On a phone on the same WiFi, open `http://learnling.local:8000`, take a photo of the printed page,
+check the text it shows against the page and fix anything wrong, then tap "Use this story". Start
+the session with `--passage today` to read it. The photo goes to OpenAI's vision model to read the
+text (needs `OPENAI_API_KEY`) and is never saved; only the checked text is kept, in
+`~/learnling-passages/`. The page has no login, so anyone on the home WiFi can open it.
+
 ## Family pilot: record only
 
 The first children read with learnling silent: no hints, no corrections, no score. The stand only records,
