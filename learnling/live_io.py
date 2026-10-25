@@ -38,33 +38,128 @@ def silence(seconds: float) -> bytes:
 
 
 class OfflineVoice:
-    """Text to speech on this machine, with a sherpa-onnx VITS (Piper) voice.
+    """Text to speech on this machine, with a sherpa-onnx voice.
 
-    Voices are on https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models,
-    for example `vits-piper-en_US-amy-low`.
+    Voices are on https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models.
+    Three kinds work, told apart by the folder: a VITS (Piper) voice such as
+    `vits-piper-en_US-amy-low`, a Kokoro voice such as `kokoro-int8-en-v0_19`,
+    or a Kitten voice such as `kitten-nano-en-v0_2-fp16`. Kokoro and Kitten
+    folders hold several speakers; `speaker` picks one (4 is Sky in Kokoro v0.19).
     """
 
-    def __init__(self, voice_dir: str | Path, speed: float = 0.9):
+    def __init__(self, voice_dir: str | Path, speed: float = 0.9, speaker: int = 0, num_threads: int = 2):
         import sherpa_onnx
 
         folder = Path(voice_dir)
-        model = next(folder.glob("*.onnx"))
+        model = str(next(folder.glob("*.onnx")))
+        files = dict(tokens=str(folder / "tokens.txt"), data_dir=str(folder / "espeak-ng-data"))
+        if (folder / "voices.bin").exists():
+            files["voices"] = str(folder / "voices.bin")
+            if "kitten" in folder.name.lower():
+                kind = dict(kitten=sherpa_onnx.OfflineTtsKittenModelConfig(model=model, **files))
+            else:
+                kind = dict(kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(model=model, **files))
+        else:
+            kind = dict(vits=sherpa_onnx.OfflineTtsVitsModelConfig(model=model, **files))
         config = sherpa_onnx.OfflineTtsConfig(
-            model=sherpa_onnx.OfflineTtsModelConfig(
-                vits=sherpa_onnx.OfflineTtsVitsModelConfig(
-                    model=str(model),
-                    tokens=str(folder / "tokens.txt"),
-                    data_dir=str(folder / "espeak-ng-data"),
-                ),
-                num_threads=2,
-            ),
+            model=sherpa_onnx.OfflineTtsModelConfig(**kind, num_threads=num_threads),
         )
         self._tts = sherpa_onnx.OfflineTts(config)
         self._speed = speed
+        self._speaker = speaker
 
     def synthesize(self, text: str) -> tuple[list[float], int]:
-        audio = self._tts.generate(text, sid=0, speed=self._speed)
+        audio = self._tts.generate(text, sid=self._speaker, speed=self._speed)
+        if not audio.sample_rate:
+            raise RuntimeError(
+                "the voice made no sound; sherpa-onnx 2.0 breaks these voices, "
+                'install 1.13.8 with: pip install "sherpa-onnx==1.13.8"'
+            )
         return list(audio.samples), audio.sample_rate
+
+
+class CloudVoice:
+    """A natural-sounding voice from OpenAI's text-to-speech service.
+
+    Only learnling's own sentences are sent; the reader's voice and words never
+    are. Needs `OPENAI_API_KEY`. `name` is one of OpenAI's voices, such as
+    marin, cedar or coral.
+    """
+
+    URL = "https://api.openai.com/v1/audio/speech"
+    RATE = 24000  # OpenAI's raw "pcm" output: 24 kHz, 16-bit, mono
+
+    def __init__(self, name: str = "marin", model: str = "gpt-4o-mini-tts",
+                 style: str = "Warm, gentle and playful, like a friendly reading buddy talking to a young "
+                              "child. Unhurried, clear and encouraging.",
+                 api_key: str | None = None, timeout: float = 30.0):
+        import os
+
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        if not self.api_key:
+            raise RuntimeError("the cloud voice needs OPENAI_API_KEY set")
+        self.name, self.model, self.style, self.timeout = name, model, style, timeout
+
+    def request_body(self, text: str) -> dict:
+        return {"model": self.model, "voice": self.name, "input": text, "instructions": self.style,
+                "response_format": "pcm"}
+
+    def synthesize(self, text: str) -> tuple[list[float], int]:
+        import json
+        import urllib.request
+
+        import numpy as np
+
+        request = urllib.request.Request(
+            self.URL, data=json.dumps(self.request_body(text)).encode(),
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            pcm = response.read()
+        samples = np.frombuffer(pcm[: len(pcm) // 2 * 2], dtype=np.int16).astype(np.float32) / 32768.0
+        return samples.tolist(), self.RATE
+
+
+def make_voice(spec: str, speed: float = 0.95, speaker: int = 0):
+    """`openai:marin` for the cloud voice, otherwise a folder of an offline voice."""
+    if spec.startswith("openai:"):
+        return CloudVoice(spec.split(":", 1)[1] or "marin")
+    return OfflineVoice(spec, speed=speed, speaker=speaker)
+
+
+class PreparedVoice:
+    """A voice that makes known lines ahead of time, in the background.
+
+    `prepare(lines)` starts making them while the session does other things
+    (waiting for the reader, greeting them). A line that is ready plays at
+    once; one that isn't is made on the spot, as before. Nothing is written
+    to disk.
+    """
+
+    def __init__(self, voice):
+        self.voice = voice
+        self._ready: dict[str, tuple[list[float], int]] = {}
+        self._lock = threading.Lock()
+
+    def prepare(self, lines) -> threading.Thread:
+        def work():
+            for line in lines:
+                if line not in self._ready:
+                    made = self._synthesize_locked(line)
+                    self._ready[line] = made
+
+        worker = threading.Thread(target=work, daemon=True)
+        worker.start()
+        return worker
+
+    def _synthesize_locked(self, text: str):
+        # The voice model is not safe to run from two threads at once.
+        with self._lock:
+            return self.voice.synthesize(text)
+
+    def synthesize(self, text: str) -> tuple[list[float], int]:
+        ready = self._ready.get(text)
+        return ready if ready is not None else self._synthesize_locked(text)
 
 
 def to_pcm16(samples, rate: int) -> bytes:
@@ -87,6 +182,7 @@ class ListeningLight:
 
     def __init__(self, gpio_pin: int | None = None):
         self._led = None
+        self._lit = False
         if gpio_pin is not None:
             from gpiozero import LED
 
@@ -95,14 +191,16 @@ class ListeningLight:
     def on(self) -> None:
         if self._led:
             self._led.on()
-        else:
+        elif not self._lit:
             print("  [light on: listening]")
+        self._lit = True
 
     def off(self) -> None:
         if self._led:
             self._led.off()
-        else:
+        elif self._lit:
             print("  [light off]")
+        self._lit = False
 
 
 class Speaker:
@@ -137,19 +235,41 @@ class Speaker:
         if self.light:
             self.light.off()
         try:
-            sd.play(samples, rate)
-            sd.wait()
+            _play(sd, samples, rate)
         finally:
             if self.light:
                 self.light.on()
             self.muted.clear()
 
 
-def mic_chunks(speaker: Speaker, max_seconds: float):
+#: Rates the sound card has already refused, so it is asked only once.
+_REFUSED_RATES: dict[str, set[int]] = {"input": set(), "output": set()}
+
+
+def _play(sd, samples, rate: int) -> None:  # pragma: no cover - needs real hardware
+    """Play, converting to the speaker's own rate if it refuses this one (as some USB speakerphones do)."""
+    import numpy as np
+
+    if rate not in _REFUSED_RATES["output"]:
+        try:
+            sd.play(samples, rate)
+            sd.wait()
+            return
+        except sd.PortAudioError:
+            _REFUSED_RATES["output"].add(rate)
+    device_rate = int(sd.query_devices(kind="output")["default_samplerate"])
+    x = np.asarray(samples, dtype=np.float32)
+    n = int(len(x) * device_rate / rate)
+    sd.play(np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32), device_rate)
+    sd.wait()
+
+
+def mic_chunks(speaker: Speaker, max_seconds: float, enter_stops: bool = True):
     """The microphone, a tenth of a second at a time, until Enter or `max_seconds`.
 
     Audio that arrives while learnling is speaking is dropped, so it never hears
-    (or waits on) itself.
+    (or waits on) itself. With `enter_stops=False` only `max_seconds` (or the
+    caller letting go) ends it, for hands-free sessions.
     """
     try:
         import sounddevice as sd
@@ -167,19 +287,47 @@ def mic_chunks(speaker: Speaker, max_seconds: float):
         sys.stdin.readline()
         stop.set()
 
-    threading.Thread(target=wait_for_enter, daemon=True).start()
+    if enter_stops:
+        threading.Thread(target=wait_for_enter, daemon=True).start()
     heard = 0.0
-    with sd.RawInputStream(  # pragma: no cover - needs real hardware
-        samplerate=SAMPLE_RATE, channels=1, dtype="int16",
-        blocksize=int(SAMPLE_RATE * CHUNK_SECONDS), callback=callback,
-    ):
+    stream, rate = _open_input(sd, callback)  # pragma: no cover - needs real hardware
+    with stream:  # pragma: no cover - needs real hardware
         while not stop.is_set() and heard < max_seconds:
             try:
                 pcm = chunks.get(timeout=0.5)
             except queue.Empty:
                 continue
+            if rate != SAMPLE_RATE:
+                pcm = resample_pcm16(pcm, rate)
             heard += len(pcm) / 2 / SAMPLE_RATE
             yield pcm
+
+
+def _open_input(sd, callback):  # pragma: no cover - needs real hardware
+    """A 16 kHz input stream, or the device's own rate if it refuses 16 kHz.
+
+    Some USB speakerphones only record at 44.1 or 48 kHz; the audio is then
+    converted to 16 kHz as it arrives.
+    """
+    if SAMPLE_RATE not in _REFUSED_RATES["input"]:
+        try:
+            stream = sd.RawInputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16",
+                                       blocksize=int(SAMPLE_RATE * CHUNK_SECONDS), callback=callback)
+            return stream, SAMPLE_RATE
+        except sd.PortAudioError:
+            _REFUSED_RATES["input"].add(SAMPLE_RATE)
+    rate = int(sd.query_devices(kind="input")["default_samplerate"])
+    stream = sd.RawInputStream(samplerate=rate, channels=1, dtype="int16",
+                               blocksize=int(rate * CHUNK_SECONDS), callback=callback)
+    return stream, rate
+
+
+def resample_pcm16(pcm: bytes, rate: int) -> bytes:
+    """16-bit mono audio at `rate` to 16 kHz."""
+    import numpy as np
+
+    x = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+    return to_pcm16(x, rate)
 
 
 def recorded(chunks, timeline: list[bytes]):

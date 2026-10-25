@@ -57,6 +57,9 @@ try:
 except ImportError:  # pragma: no cover - exercised only without the extra
     anthropic = None
 
+#: Words a long sentence can be broken in front of without sounding cut off.
+_JOINING_WORDS = {"and", "but", "so", "if", "then", "because", "when"}
+
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+")
 _WORD = re.compile(r"[A-Za-z']+")
 
@@ -91,10 +94,14 @@ def _cap_sentence_length(sentence: str, max_words: int) -> list[str]:
     chunks = []
     remaining = words
     while len(remaining) > max_words:
-        split_at = max_words
+        pieces = -(-len(remaining) // max_words)
+        target = -(-len(remaining) // pieces)
+        # Even pieces rather than a full one and a stub: "Look at the next
+        # word and sound it. Out." is harder to follow than two halves.
+        split_at = target
         # prefer breaking at a natural pause near the cap over a hard word cut
-        for i in range(max_words, max(0, max_words - 3), -1):
-            if remaining[i - 1].endswith((",", ";", "—", "-")):
+        for i in range(target, max(0, target - 3), -1):
+            if remaining[i - 1].endswith((",", ";", "—", "-")) or remaining[i].lower() in _JOINING_WORDS:
                 split_at = i
                 break
         chunks.append(_finish_chunk(remaining[:split_at]))
