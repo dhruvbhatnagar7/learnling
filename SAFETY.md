@@ -16,6 +16,13 @@ in the pipeline is designed with them in mind.
   other is `learnling pilot start`, which records for the consented family
   pilot under a child code, never a name, until `learnling pilot copy` moves
   the recordings to the adult's computer; see `docs/raspberry-pi.md`.
+- **Cloud options send text, never audio.** By default everything runs on
+  the device. With `--llm openai:MODEL`, the passage, simple reading numbers
+  and the words the recogniser heard the reader say are sent to OpenAI as
+  text. With `--voice openai:NAME`, learnling's own lines are sent to be
+  spoken; nothing the reader said. Use these
+  only when the consent form covers them. Speech recognition, hints and
+  scoring always stay on the device.
 - **Session-only memory.** Transcripts and utterance text live only in the
   in-memory `Session` object for the lifetime of the process. Nothing is
   written to disk unless you explicitly ask for it.

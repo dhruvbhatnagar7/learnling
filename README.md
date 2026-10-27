@@ -14,7 +14,8 @@ the moment, and turns their mistakes into their next story.
 - **What it is:** a voice-only agent that sits beside a child reading from paper, the way a parent or teacher would.
 - **Who it's for:** children from age 4 up, reading at home with a parent nearby.
 - **What it gives adults:** a rough picture of how home reading went, for each child and across a class.
-- **What works today:** the reading loop, in text simulation. [Try it in a minute](#quickstart).
+- **What works today:** a hands-free reading session on a Raspberry Pi book stand, tested with adult
+  readers. The pipeline works, but it is not yet accurate on children's voices. [Try it](#quickstart).
 
 *-ling* as in duckling: a young learner, at whatever age the learning happens.
 
@@ -29,6 +30,7 @@ the moment, and turns their mistakes into their next story.
 - [Limitations: recognising children's speech](#limitations-recognising-childrens-speech)
 - [The speech evidence interface](#the-speech-evidence-interface)
 - [Architecture](#architecture)
+- [Where the models run](#where-the-models-run)
 - [Design principles](#design-principles)
 - [What this isn't](#what-this-isnt)
 - [Prior art](#prior-art)
@@ -281,6 +283,7 @@ What this means in practice:
 - **Missed by word-level recognition:** non-word attempts and half-finished sounding out, which is most of what a decoding child produces.
 - **The fix:** a second model that listens for individual sounds (phonemes). These exist but are less accurate on children's voices.
 - **What would help most:** recordings of children reading aloud, labelled sound by sound. Very little is public.
+- **Measured so far:** on public recordings of children aged 6 to 10, the recognisers tested wrongly flagged 7 to 16% of correctly read words. That's too many to use with children yet. Method and results: [`docs/evaluation-method.md`](docs/evaluation-method.md).
 
 <details>
 <summary><b>Read more:</b> why this happens, and how comprehension answers are handled</summary>
@@ -437,6 +440,23 @@ A few rules on the personalisation side. Look at patterns across sessions rather
 Mix the target patterns in with mastered ones so accuracy stays up around the 95-98% band, because a
 passage built entirely out of a child's weak spots is miserable to read.
 
+## Where the models run
+
+learnling is built so the same session can run in three ways, and the parent or school district
+picks the one that fits their privacy rules, budget and internet connection. The reading logic is the
+same in all three.
+
+| | Speech recognition | Conversation and voice | What leaves the device |
+|---|---|---|---|
+| **On the device only** | On the device | A small open model (Gemma 3 1B through Ollama) and an offline voice, on the device | Nothing |
+| **Cloud, with text only** | On the device | A cloud language model and a cloud voice (`--llm openai:...`, `--voice openai:...`) | Text only: the passage, reading numbers and the words the recogniser heard, plus learnling's own lines to be spoken. Never audio. |
+| **Cloud, with voice** | *Designed, not built.* A cloud speech model also hears the child between reads | Cloud | The child's voice, during the conversation |
+
+In every mode, hints during reading and the scoring of each read stay on the device, because hints
+have to arrive within seconds and follow fixed rules (such as never saying the word for the child).
+The consent a family or school signs has to match the mode they pick. Testing so far has used the
+cloud-with-text mode, because the offline voices tried sounded too robotic for young children.
+
 ## Design principles
 
 1. **Help inside the reading**, not in a separate chat.
@@ -548,7 +568,9 @@ labelled recordings, and `python -m learnling record` reads into the microphone.
 [`docs/audio-evaluation.md`](docs/audio-evaluation.md). How accurate it is, and how that was measured:
 [`docs/evaluation-method.md`](docs/evaluation-method.md). `python -m learnling live` listens as someone reads and
 hints when they get stuck ([`docs/live-reading.md`](docs/live-reading.md)), and
-[`docs/raspberry-pi.md`](docs/raspberry-pi.md) covers the book stand. There's an
+[`docs/raspberry-pi.md`](docs/raspberry-pi.md) covers the book stand, including `python -m learnling stand`, the
+hands-free session: the reader says "I'm ready to read", reads with hints, reads again, and answers
+questions an adult approved. There's an
 optional LLM-backed Q&A and adaptation pass behind the `llm` extra. See `learnling/agents/learning.py`
 and `learnling/adaptation.py`.
 
@@ -556,7 +578,11 @@ and `learnling/adaptation.py`.
 
 These are constraints on every response rather than a feature added later.
 
-- No audio is written to disk by this package.
+- No audio is kept by this package, with two exceptions an adult turns on deliberately:
+  `learnling record --save-to` for accuracy testing, and `learnling pilot start` for a consented family
+  pilot. See [`SAFETY.md`](SAFETY.md).
+- With the cloud options, text leaves the device: see [Where the models run](#where-the-models-run).
+  The child's audio does not.
 - Transcripts live in an in-memory session for the life of the process. Nothing persists unless you
   ask for a report.
 - `--save-report` writes session stats, meaning accuracy, words correct per minute, miscue counts and
@@ -571,11 +597,12 @@ See [`SAFETY.md`](SAFETY.md) for the full policy and the COPPA design notes.
 
 | Milestone | Status | What it covers |
 |---|---|---|
-| **M1, text-simulated reading loop** | Done | Orchestrator, reading agent, age adaptation, safety, CLI demo. This is what runs today. |
-| **M2, real audio** | In progress | Word-track adapter, timestamps into real fluency numbers, two-pass read end to end. Working on recordings and a laptop microphone; not yet tested with children or on a Raspberry Pi. |
+| **M1, text-simulated reading loop** | Done | Orchestrator, reading agent, age adaptation, safety, CLI demo |
+| **M2, real audio** | Done | Recorded and live audio, timestamps into real fluency numbers, two-pass read end to end, a hint when a reader stalls. Runs on a laptop and on a Raspberry Pi 5. Tested with adult readers only; not yet accurate on children's voices. |
+| **Hands-free stand session** | Working prototype | Wake phrase, two reads, spoken questions, parent report by email, on the device or with the cloud-with-text option. Tested with adult readers only. |
 | **M3, phoneme track** | Planned | Text prep, the miscue detector, scoring on every word with free recognition on flagged ones. Open phoneme checkpoints as the first adapter. |
 | **M4, generation loop** | Planned | Decodable generator driven by the learner profile, with the deterministic checker |
-| **M5, comprehension** | Planned | Spoken questions after the second read, tracked separately from decoding level |
+| **M5, comprehension** | In progress | Spoken questions after the second read, approved by an adult first, are working in the stand session. Not yet tracked separately from decoding level. |
 | **M6, longitudinal report** | Planned | For a teacher or parent |
 | **Later** | Planned | Math talk, ELL oral language and storytelling agents |
 
