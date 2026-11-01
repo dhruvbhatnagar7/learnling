@@ -18,6 +18,7 @@ python eval/make_child_cases.py eval-data/speechocean762-test.parquet eval-data/
 python -m learnling eval eval-data/child-cases --asr vosk --vosk-model eval-data/models/vosk-model-small-en-us-0.15 > child-vosk.txt
 python -m learnling eval eval-data/child-cases --asr whisper > child-whisper.txt
 python eval/breakdown.py child-vosk.txt
+python eval/by_age_group.py "Vosk small=child-vosk.txt" "Whisper base.en=child-whisper.txt"
 ```
 
 The child cases are drawn with a fixed random seed, so the same 300 clips and the same edits come out each
@@ -29,4 +30,5 @@ time.
 | `make_adult_cases.py` | Turns the 6 adult clips into 21 labelled cases |
 | `make_child_cases.py` | Turns speechocean762 clips into one clean and one error case each |
 | `breakdown.py` | Splits a results table by error type and child age |
+| `by_age_group.py` | Splits children's results into age groups as a table |
 | `neighbour_experiment.py` | A side experiment, not part of learnling: Vosk with similar-looking words added |

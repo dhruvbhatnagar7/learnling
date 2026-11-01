@@ -59,4 +59,6 @@ What it means:
 - Younger children fare worse with both, as expected.
 - Fixed during this run: Whisper writes "nine" as "9", which counted as a misreading (it made Whisper look like 9% false accusations instead of 7%).
 
+Results split by age group, with Kid-Whisper, pasketti-phonetic and Nemotron added: [`../age-groups.md`](../age-groups.md).
+
 Other child datasets, not used: CMU Kids (children reading aloud, real miscues, closest match to learnling) and CSLU Kids are licensed through LDC; MyST is conversational, research licence. None are free to use.
