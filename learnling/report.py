@@ -15,7 +15,7 @@ import json
 
 from learnling.agents.reading import normalize_words
 from learnling.models import Miscue, Session
-from learnling.patterns import PATTERN_NAMES, is_self_correction, patterns_for
+from learnling.patterns import PATTERN_NAMES, dropped_ending, is_self_correction, patterns_for
 
 #: A pattern needs this many different words before it is listed as one to
 #: practise. One word can be a recogniser mishearing; the same kind of slip
@@ -83,6 +83,10 @@ def _describe(entry: dict) -> str:
         text = f'added "{entry["read_as"]}"'
     else:
         text = f'"{entry["word"]}", read as "{entry["read_as"]}"'
+        suffix = dropped_ending(entry["word"], entry["read_as"])
+        if suffix:
+            # Say plainly what was left off; the pattern name would repeat it.
+            return text + f" (dropped the -{suffix} ending)"
     # Short names here; the "Sounds to practise" list gives the examples.
     names = [
         PATTERN_NAMES[p].split(" (")[0]

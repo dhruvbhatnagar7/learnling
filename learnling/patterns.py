@@ -29,7 +29,10 @@ PATTERN_NAMES: dict[str, str] = {
     "digraph": "digraphs (sh, ch, th, ck, ng...)",
     "blend": "consonant blends (fr, st, nd...)",
     "consonant": "single consonant sounds",
-    "ending": "word endings (-s, -ed, -ing...)",
+    "ending_ed": "-ed endings (jumped, played, wanted)",
+    "ending_ing": "-ing endings (running, jumping)",
+    "ending_s": "-s and -es endings (cats, boxes)",
+    "ending": "other word endings (-er, -est, -ly...)",
     "swap": "a different word read in its place",
     "skipped": "skipped words",
     "added": "added words",
@@ -121,6 +124,13 @@ def _same_stem(a: str, b: str) -> bool:
     return extra == "e" or extra == short[-1]
 
 
+def _same_root(a: str, b: str) -> bool:
+    """`_same_stem`, plus y changed to i before an ending: 'cri' and 'cry'."""
+    if _same_stem(a, b):
+        return True
+    return len(a) == len(b) and a[:-1] == b[:-1] and {a[-1], b[-1]} == {"i", "y"}
+
+
 def _is_ending_slip(expected: str, heard: str) -> bool:
     """Right root, wrong or missing ending: 'sitting' read as 'sit'."""
     expected_stem, expected_suffix = _split_suffix(expected)
@@ -128,10 +138,32 @@ def _is_ending_slip(expected: str, heard: str) -> bool:
     if expected_suffix == heard_suffix:
         return False
     return (
-        _same_stem(expected_stem, heard_stem)
-        or _same_stem(expected_stem, heard)
-        or _same_stem(expected, heard_stem)
+        _same_root(expected_stem, heard_stem)
+        or _same_root(expected_stem, heard)
+        or _same_root(expected, heard_stem)
     )
+
+
+_ENDING_KEYS = {"ed": "ending_ed", "ing": "ending_ing", "s": "ending_s", "es": "ending_s"}
+
+
+def _ending_key(expected: str) -> str:
+    """Which ending of the page word was missed: 'jumped' -> the -ed group.
+
+    A page word with no ending of its own ("make" read as "making") means
+    the reader added one, which goes in the general endings group.
+    """
+    return _ENDING_KEYS.get(_split_suffix(expected)[1], "ending")
+
+
+def dropped_ending(expected: str | None, heard: str | None) -> str | None:
+    """The ending left off, when the reader said only the root: 'jumped' as 'jump' -> 'ed'."""
+    if not expected or not heard:
+        return None
+    stem, suffix = _split_suffix(expected)
+    if not suffix or _split_suffix(heard)[1]:
+        return None
+    return suffix if _same_root(stem, heard) else None
 
 
 def _differing_region(expected: str, heard: str) -> tuple[int, int]:
@@ -162,7 +194,7 @@ def patterns_for(miscue: Miscue) -> list[str]:
     if not expected or not heard:
         return []
     if _is_ending_slip(expected, heard):
-        return ["ending"]
+        return [_ending_key(expected)]
     if not is_near_miss(expected, heard):
         # "a" for "the" is not about any one spelling pattern.
         return ["swap"]
