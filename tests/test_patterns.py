@@ -23,9 +23,31 @@ def test_the_pattern_is_where_the_words_differ():
 
 
 def test_a_dropped_or_changed_ending_is_an_ending_slip():
-    assert _sub("sitting", "sit") == ["ending"]
-    assert _sub("jumped", "jumps") == ["ending"]
+    assert _sub("sitting", "sit") == ["ending_ing"]
+    assert _sub("jumped", "jumps") == ["ending_ed"]
     assert _sub("make", "making") == ["ending"]
+
+
+def test_endings_are_grouped_by_the_ending_the_page_word_has():
+    assert _sub("jumped", "jump") == ["ending_ed"]
+    assert _sub("stopped", "stop") == ["ending_ed"]
+    assert _sub("hoped", "hope") == ["ending_ed"]
+    assert _sub("cried", "cry") == ["ending_ed"]
+    assert _sub("cats", "cat") == ["ending_s"]
+    assert _sub("boxes", "box") == ["ending_s"]
+    assert _sub("bigger", "big") == ["ending"]
+
+
+def test_dropped_ending_names_the_suffix_left_off():
+    from learnling.patterns import dropped_ending
+
+    assert dropped_ending("jumped", "jump") == "ed"
+    assert dropped_ending("running", "run") == "ing"
+    assert dropped_ending("cried", "cry") == "ed"
+    # A changed ending is not a dropped one.
+    assert dropped_ending("jumped", "jumps") is None
+    assert dropped_ending("jumped", "junk") is None
+    assert dropped_ending("jump", "jumped") is None
 
 
 def test_an_unrelated_word_is_not_blamed_on_a_spelling_pattern():
@@ -113,3 +135,15 @@ def test_an_unsure_self_correction_is_still_listed_as_fixed():
     )
     assert '"shell", first read as "sell", then fixed' in report
     assert "Not sure" not in report
+
+
+def test_dropped_ed_endings_are_named_in_the_report():
+    """A reader who says the root and leaves off -ed: 'jump' for 'jumped'."""
+    orchestrator = Orchestrator(LearnerProfile(age_years=8))
+    orchestrator.load_passage("The dog jumped over the log and played in the mud.")
+    orchestrator.handle_utterance(
+        Utterance(text="The dog jump over the log and play in the mud.", duration_seconds=6.0)
+    )
+    report = generate_report(orchestrator.session)
+    assert '"jumped", read as "jump" (dropped the -ed ending)' in report
+    assert "- -ed endings (jumped, played, wanted): jumped, played" in report
