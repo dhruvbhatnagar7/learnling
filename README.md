@@ -481,7 +481,7 @@ cloud-with-text mode, because the offline voices tried sounded too robotic for y
 | **A screener** | Tools such as DIBELS and Amira screen for reading difficulty and have validation studies behind them. learnling has none. |
 | **A diagnosis** | It shows an adult where a child's mistakes cluster. A teacher or specialist works out why. |
 | **A replacement for teaching** | Good phonics teaching uses letter tiles, tracing, gesture and sound. A voice device covers two of those four. |
-| **A replacement for reading together** | It's meant to support a parent reading with their child, not stand in for them. It isn't meant to save teachers time either. |
+| **A replacement for reading together** | It's meant to support a parent reading with their child, not stand in for them. |
 | **For every child** | It isn't designed for students on IEPs who need 1:1 adult support. Children with speech-sound disorders will be misheard, and it isn't designed to judge their decoding. |
 
 ## Prior art
