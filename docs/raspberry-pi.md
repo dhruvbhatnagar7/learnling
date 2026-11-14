@@ -118,6 +118,32 @@ For a stronger model than the stand can run, pass `--llm openai:gpt-4.1-mini`. T
 conversation as text to OpenAI, including the words the reader said (never audio), so only use it
 when the consent form covers it.
 
+### Today's story from a photo
+
+Instead of a passage file, a parent can add the child's school reading from their phone. On the stand:
+
+```
+python -m learnling page
+```
+
+On a phone on the same WiFi, open `http://learnling.local:8000`, take a photo of the printed page,
+check the text it shows against the page and fix anything wrong, then tap "Use this story". Start
+the session with `--passage today` to read it. The photo goes to OpenAI's vision model to read the
+text (needs `OPENAI_API_KEY`) and is never saved; only the checked text is kept, in
+`~/learnling-passages/`. The page has no login, so anyone on the home WiFi can open it.
+
+To skip the terminal, leave one command running on the stand and do everything else from the phone:
+
+```
+python -m learnling stand --from-phone --model ~/models/nemotron-560 --voice openai:marin --llm openai:gpt-4.1-mini --age 7
+```
+
+It serves the same phone page. When the parent taps "Use this story", the stand says "I have your
+story ready. Say ready when you want to read." The child says "ready" and the session runs as usual.
+Afterwards the stand waits for the next story. In this mode nobody is at a keyboard, so the story
+questions are asked as the model wrote them (they still pass the safety check) instead of being
+approved by an adult first.
+
 ## Family pilot: record only
 
 The first children read with learnling silent: no hints, no corrections, no score. The stand only records,
@@ -139,6 +165,25 @@ python -m learnling pilot start child03 --passage passages/sample_level1.txt --a
 
 Press Enter when the child is ready, and Enter again when they finish. Keep or discard the take, then read
 again or finish. Recordings are saved on the stand's SD card under `~/learnling-pilot/child03/`.
+
+**Recording a full session instead.** Add `--pilot child03` to `stand` to run the normal talking session
+(hints, second read, questions) and save the two reads in the same folder, ready for `pilot copy`:
+
+```
+python -m learnling stand --from-phone --pilot child03 --model ~/models/nemotron-560 --voice openai:marin --llm openai:gpt-4.1-mini --age 7
+```
+
+Only the reads are saved, never the answers to the questions. Each recording's label says which read it
+was: read 1 has hints, so the child may repeat a word after hearing it; read 2 has none and is the cleaner
+one for measuring accuracy. Stop and restart with the next code before the next child reads.
+
+**Full report.** Add `--full-report ~/models/kid-whisper` (or `--full-report base.en`) to `stand`, and
+`--email-to` to email it. Right after the session the adult gets the short report; then the stand scores
+both reads again with that slower model, on the stand, and sends a full report with words correct per
+minute, the words to look at (including dropped endings) and patterns. The audio is held in memory for
+this and deleted once it is scored. The report says plainly that learnling can get words wrong. Install
+the model on the stand first with `pip install -e '.[asr]'`, and copy a converted model folder over from
+the laptop if you use Kid-Whisper.
 
 **Afterwards, on the laptop** (not over SSH):
 

@@ -12,6 +12,10 @@
    answers what the reader says.
 5. The buddy says goodbye, and the adult gets the report (see `emailer.py`).
 
+For the family pilot, `on_read` is handed the audio of each of the two reads
+so they can be saved for scoring later (see `pilot.py`). Answers to the
+questions are never handed over.
+
 The reader's voice is only ever heard by the speech recogniser on the stand.
 What they answer is turned into words for the buddy and then forgotten: it is
 not kept in the report or anywhere else.
@@ -32,6 +36,9 @@ WAKE_WORDS = ("ready",)
 #: it; there is no word for them to say first, since a single short word like
 #: "read" is easily missed.
 GO_LINE = "When I say go, start reading. Ready? Go!"
+
+#: What the stand says when a story arrives from the phone page.
+STORY_READY_LINE = "I have your story ready. Say ready when you want to read."
 
 #: How long one listening window lasts while waiting for a word; the
 #: recogniser starts fresh each window so a long wait doesn't pile up.
@@ -113,8 +120,14 @@ def run_stand(
     light=None,
     wake: bool = True,
     on_status=print,
+    on_read=None,
 ) -> StandSession:
-    """One hands-free session. `open_mic(max_seconds)` gives a fresh stream of microphone chunks."""
+    """One hands-free session. `open_mic(max_seconds)` gives a fresh stream of microphone chunks.
+
+    `on_read(number, hints, pcm, passage=...)`, if given, gets the audio of
+    read 1 (with hints) and read 2 (without), and the part of the page each
+    read covered, for the pilot recording and the full report.
+    """
     orchestrator = Orchestrator(LearnerProfile(age_years=age_years))
     orchestrator.load_passage(passage_text)
     max_read = max(30.0, len(normalize_words(passage_text)) * 3.0)
@@ -129,14 +142,20 @@ def run_stand(
         if light:
             light.on()
         coach = ReadingCoach(passage_text, recognizer, age_years=age_years, hints=hints)
-        utterance = run_reading(coach, open_mic(max_read), speak, stop_when=said_stop_word)
+        heard: list[bytes] = []
+        chunks = _kept(open_mic(max_read), heard) if on_read else open_mic(max_read)
+        utterance = run_reading(coach, chunks, speak, stop_when=said_stop_word)
         if light:
             light.off()
         on_status(f"  (read heard as: {utterance.text})")
         # A reader who stops partway is scored on the part they read, not
         # marked as skipping the rest of the page.
+        read_text = passage_text
         if not coach.finished and coach.tracker.position > 0:
-            orchestrator.load_passage(" ".join(coach.tracker.expected[:coach.tracker.position]))
+            read_text = " ".join(coach.tracker.expected[:coach.tracker.position])
+            orchestrator.load_passage(read_text)
+        if on_read:
+            on_read(1 if hints else 2, hints, b"".join(heard), passage=read_text)
         orchestrator.handle_utterance(_without_stop_word(utterance))
         orchestrator.load_passage(passage_text)
         result = orchestrator.session.events[-1]["report_notes"]["reading_result"]
@@ -159,6 +178,19 @@ def run_stand(
     seconds = first_coach.heard_seconds + second_coach.heard_seconds
     speak(buddy.goodbye(seconds / 60.0))
     return StandSession(orchestrator, helped, seconds, len(questions))
+
+
+def _kept(chunks, into: list[bytes]):
+    """Pass microphone chunks through, keeping a copy of each."""
+    chunks = iter(chunks)
+    try:
+        for pcm in chunks:
+            into.append(pcm)
+            yield pcm
+    finally:
+        close = getattr(chunks, "close", None)
+        if close is not None:
+            close()
 
 
 def _line(orchestrator: Orchestrator, text: str) -> str:
