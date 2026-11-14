@@ -197,6 +197,11 @@ def _ask_prefilled(question: str, prefill: str, prompt=input) -> str:
     try:
         import readline
     except ImportError:  # pragma: no cover - Windows
+        readline = None
+    if readline is None or "libedit" in (readline.__doc__ or ""):
+        # The Mac's built-in Python uses libedit, which can't pre-type text:
+        # show it instead, to copy, paste and edit.
+        print(f"  Page text (copy, paste and edit; Enter alone means read exactly):\n  {prefill}")
         return prompt(question) or prefill
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
