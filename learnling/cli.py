@@ -329,7 +329,26 @@ def cmd_stand(args: argparse.Namespace) -> None:
     light = live_io.ListeningLight(args.led_pin)
     speaker = live_io.Speaker(voice, light=light)
 
+    import threading
+
+    scoring: list[threading.Thread] = []
+
+    def closing_line() -> str | None:
+        if not args.from_phone:
+            return None
+        line = "Great reading today! I'm proud of you."
+        if args.email_to:
+            line += " Details on how this session went have been sent to email."
+        return line + (" If you'd like to read more, just ask a parent to add more content and we'll be ready."
+                        " Otherwise, say goodbye!")
+
     def session(passage_text: str, approve: bool, announce: str | None = None) -> None:
+        # The stand scores one session at a time: let the last full report finish first.
+        for thread in scoring:
+            if thread.is_alive():
+                print("Finishing the last full report first...")
+            thread.join()
+        scoring.clear()
         print(f"Passage:\n\n  {passage_text}\n")
         buddy = buddy_mod.ReadingBuddy(passage_text, args.age, chat=chat)
         questions = buddy.questions(args.questions) if args.questions else []
@@ -339,6 +358,8 @@ def cmd_stand(args: argparse.Namespace) -> None:
             orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
             fixed = [live.orchestrator_say(orchestrator, stand.GO_LINE)]
             lines = fixed + [buddy.spoken(q) for q in questions]
+            if closing_line():
+                lines += [closing_line(), stand.BYE_LINE]
             # A cloud voice answers in about a second, quick enough for a hint, so
             # only a slow voice on the stand makes every hint line ahead of time.
             if not isinstance(voice.voice, live_io.CloudVoice):
@@ -361,7 +382,7 @@ def cmd_stand(args: argparse.Namespace) -> None:
             passage_text, recognizer,
             lambda seconds: live_io.mic_chunks(speaker, seconds, enter_stops=False),
             speaker, buddy, questions, age_years=args.age, light=light, wake=not args.no_wake,
-            on_read=on_read,
+            on_read=on_read, closing=closing_line(),
         )
         light.off()
         body = emailer.report_text(result, full_report_coming=bool(keeper and args.email_to))
@@ -371,14 +392,23 @@ def cmd_stand(args: argparse.Namespace) -> None:
         if keeper is not None and keeper.reads:
             from learnling.fullreport import full_report_text, score_reads
 
-            print("Scoring the reads again for the full report...")
-            try:
-                scored = score_reads(keeper.reads, scorer, args.full_report_confidence)
-            finally:
-                keeper.clear()  # the audio is never kept past this point
-            full = full_report_text(scored, result.words_helped)
-            print("\n" + full)
-            _email(args.email_to, full, subject="learnling full report")
+            reads, helped = list(keeper.reads), list(result.words_helped)
+            keeper.clear()
+
+            def full_report() -> None:
+                try:
+                    scored = score_reads(reads, scorer, args.full_report_confidence)
+                finally:
+                    reads.clear()  # the audio is never kept past this point
+                full = full_report_text(scored, helped)
+                print("\n" + full)
+                _email(args.email_to, full, subject="learnling full report")
+
+            # Scored in the background, so the stand is ready for the next story.
+            print("Scoring the reads again for the full report, in the background...")
+            thread = threading.Thread(target=full_report)
+            thread.start()
+            scoring.append(thread)
 
     if not args.from_phone:
         session(passage_text, approve=not args.skip_approval)

@@ -32,6 +32,8 @@ from learnling.models import LearnerProfile
 from learnling.orchestrator import Orchestrator
 
 WAKE_WORDS = ("ready",)
+BYE_WORDS = ("bye", "goodbye")
+BYE_LINE = "Goodbye! See you next time."
 #: What the stand says to start each read. The reader starts straight after
 #: it; there is no word for them to say first, since a single short word like
 #: "read" is easily missed.
@@ -121,6 +123,7 @@ def run_stand(
     wake: bool = True,
     on_status=print,
     on_read=None,
+    closing: str | None = None,
 ) -> StandSession:
     """One hands-free session. `open_mic(max_seconds)` gives a fresh stream of microphone chunks.
 
@@ -176,7 +179,16 @@ def run_stand(
         speak(buddy.answer(" ".join(answer)))
 
     seconds = first_coach.heard_seconds + second_coach.heard_seconds
-    speak(buddy.goodbye(seconds / 60.0))
+    if closing:
+        # A fixed closing (from the stand's own settings) in place of the
+        # buddy's goodbye; if the reader says bye back, answer them.
+        speak(closing)
+        if wait_for(recognizer, open_mic, BYE_WORDS, light, tries=1, on_status=on_status):
+            speak(BYE_LINE)
+        if light:
+            light.off()
+    else:
+        speak(buddy.goodbye(seconds / 60.0))
     return StandSession(orchestrator, helped, seconds, len(questions))
 
 
