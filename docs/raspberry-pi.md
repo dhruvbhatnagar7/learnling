@@ -166,6 +166,17 @@ python -m learnling pilot start child03 --passage passages/sample_level1.txt --a
 Press Enter when the child is ready, and Enter again when they finish. Keep or discard the take, then read
 again or finish. Recordings are saved on the stand's SD card under `~/learnling-pilot/child03/`.
 
+**Recording a full session instead.** Add `--pilot child03` to `stand` to run the normal talking session
+(hints, second read, questions) and save the two reads in the same folder, ready for `pilot copy`:
+
+```
+python -m learnling stand --from-phone --pilot child03 --model ~/models/nemotron-560 --voice openai:marin --llm openai:gpt-4.1-mini --age 7
+```
+
+Only the reads are saved, never the answers to the questions. Each recording's label says which read it
+was: read 1 has hints, so the child may repeat a word after hearing it; read 2 has none and is the cleaner
+one for measuring accuracy. Stop and restart with the next code before the next child reads.
+
 **Afterwards, on the laptop** (not over SSH):
 
 ```

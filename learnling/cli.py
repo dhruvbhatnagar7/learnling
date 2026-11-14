@@ -280,6 +280,14 @@ def cmd_stand(args: argparse.Namespace) -> None:
     if not args.from_phone and not args.passage:
         print("error: give --passage, or --from-phone to wait for a story from the phone page", file=sys.stderr)
         raise SystemExit(1)
+    if args.pilot:
+        from learnling.pilot import check_child_code
+
+        try:
+            args.pilot = check_child_code(args.pilot)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
     passage_text = None
     if args.passage:
         try:
@@ -324,12 +332,19 @@ def cmd_stand(args: argparse.Namespace) -> None:
             if not isinstance(voice.voice, live_io.CloudVoice):
                 lines += live.lines_for_passage(passage_text, args.age)
             voice.prepare(lines)
+        on_read = None
+        if args.pilot:
+            from learnling.pilot import stand_recorder
+
+            on_read = stand_recorder(args.pilot, args.age, passage_text)
+            print(f"Pilot: saving both reads for {args.pilot} on this stand (answers are not saved).")
         if announce:
             speaker(announce)
         result = stand.run_stand(
             passage_text, recognizer,
             lambda seconds: live_io.mic_chunks(speaker, seconds, enter_stops=False),
             speaker, buddy, questions, age_years=args.age, light=light, wake=not args.no_wake,
+            on_read=on_read,
         )
         light.off()
         body = emailer.report_text(result)
@@ -526,6 +541,9 @@ def build_parser() -> argparse.ArgumentParser:
     stand_parser.add_argument("--save-report", help="Write a session report to this path")
     stand_parser.add_argument("--from-phone", action="store_true",
                               help="Keep running: serve the phone page, and start a session each time a story is saved there")
+    stand_parser.add_argument("--pilot", metavar="CHILD",
+                              help="Family pilot: save both reads under this child code (child03, never a name) "
+                                   "for scoring later. Only with a signed consent form")
     stand_parser.add_argument("--skip-approval", action="store_true",
                               help="Ask the story questions as written, without an adult checking them first")
     stand_parser.add_argument("--port", type=int, default=8000, help="Port of the phone page with --from-phone (default 8000)")

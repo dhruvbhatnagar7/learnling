@@ -56,16 +56,39 @@ def check_child_code(code: str) -> str:
 
 
 def save_reading(
-    folder: Path, child: str, age: int, passage_text: str, pcm: bytes, now: datetime | None = None
+    folder: Path, child: str, age: int, passage_text: str, pcm: bytes, now: datetime | None = None,
+    note: str | None = None,
 ) -> Path:
-    """Write one reading and its label stub; return the label path."""
+    """Write one reading and its label stub; return the label path.
+
+    `note` says which read it was in a full session, such as "read 2, no hints".
+    """
     folder.mkdir(parents=True, exist_ok=True)
     stem = f"{child}-{(now or datetime.now()).strftime('%Y%m%d-%H%M%S')}"
+    if (folder / f"{stem}.json").exists():  # two reads in the same second: never overwrite
+        stem += f"-{len(list(folder.glob(stem + '*.json'))) + 1}"
     write_wav(folder / f"{stem}.wav", pcm)
     label = folder / f"{stem}.json"
     record = {"passage": passage_text, "said": "", "child": child, "age": age}
+    if note:
+        record["read"] = note
     label.write_text(json.dumps(record, indent=1) + "\n")
     return label
+
+
+def stand_recorder(child: str, age: int, passage_text: str, root: Path | None = None, on_status=print):
+    """`on_read` for a full stand session: saves both reads for this child, nothing else."""
+    child = check_child_code(child)
+    folder = (root or pilot_root()) / child
+
+    def on_read(number: int, hints: bool, pcm: bytes) -> None:
+        if not pcm:
+            return
+        note = f"read {number}, " + ("with hints" if hints else "no hints")
+        save_reading(folder, child, age, passage_text, pcm, note=note)
+        on_status(f"  (saved {note} for {child} on this stand)")
+
+    return on_read
 
 
 def run_start(child: str, passage_text: str, age: int, led_pin: int | None = None,
