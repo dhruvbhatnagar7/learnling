@@ -85,9 +85,13 @@ def test_a_whole_session_by_voice():
     assert "done" not in second.transcript
 
     report = report_text(session)
-    assert "It gave a hint for: dog." in report
+    assert "Hints given for: dog." in report
     assert "it ran to the park" not in report
-    assert "not yet accurate on children's voices" in report
+    assert "Talked about 1 story question(s)." in report
+    # The live recogniser only times hints, so the quick report judges no words.
+    assert "didn't match" not in report and "%" not in report
+    assert "by email" not in report
+    assert "by email" in report_text(session, full_report_coming=True)
 
 
 def test_buddy_falls_back_when_the_model_fails():

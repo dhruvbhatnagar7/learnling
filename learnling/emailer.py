@@ -22,37 +22,47 @@ from email.message import EmailMessage
 from learnling.report import build_summary
 
 
-def report_text(session) -> str:
-    """Plain-text report of a `stand.StandSession`: time read, each read, and words to practise."""
+def report_text(session, full_report_coming: bool = False) -> str:
+    """Short plain-text report of a `stand.StandSession`, for the adult right after the session.
+
+    It only says what the stand measures reliably while listening: time, pace
+    and which words needed a hint. Which words were read wrong is left to the
+    full report, scored afterwards by a slower and better recogniser: the live
+    one is there to time hints and is too unreliable to judge words.
+    """
     summary = build_summary(session.orchestrator.session)
-    words_helped, minutes, questions_asked = session.words_helped, session.minutes, session.questions_asked
+    stats = summary["reading_stats"]
+    reads = summary["reading_attempts"]
     lines = [
         f"learnling reading session, {datetime.now():%A %B %-d, %-I:%M %p}",
         "",
-        f"Time reading aloud: about {max(1, round(minutes))} minute(s), over {summary['reading_attempts']} reads.",
+        f"Read for about {max(1, round(session.minutes))} minute(s)"
+        + (", twice." if reads == 2 else f", {reads} time(s)." if reads != 1 else ", once."),
     ]
-    for i, stat in enumerate(summary["reading_stats"], start=1):
-        label = "First read (with hints)" if i == 1 else "Second read (on their own)"
-        accuracy = f"{stat['accuracy']:.0%}" if stat["accuracy"] is not None else "-"
-        wcpm = stat.get("wcpm")
-        lines.append(f"{label}: {accuracy} of words matched the page"
-                     + (f", {wcpm} words correct per minute." if wcpm is not None else "."))
-        missed = _missed_words(stat)
-        if missed:
-            more = f", and {len(missed) - _MAX_LISTED} more" if len(missed) > _MAX_LISTED else ""
-            lines.append("  Words that didn't match: " + ", ".join(missed[:_MAX_LISTED]) + more + ".")
+    paces = [stat.get("wpm") for stat in stats]
+    for i, pace in enumerate(paces, start=1):
+        label = "First read" if i == 1 else "Second read"
+        line = f"{label}: about {round(pace)} words per minute" if pace else f"{label}: done"
+        if i == 2 and pace and paces[0]:
+            line += _compared(paces[0], pace)
+        line += "."
         if i == 1:
-            if words_helped:
-                lines.append("  It gave a hint for: " + ", ".join(words_helped) + ".")
-            else:
-                lines.append("  No hints needed.")
-    lines.append(f"Story questions talked about: {questions_asked}.")
-    lines += [
-        "",
-        "learnling is a prototype. Its speech recognition is not yet accurate on children's voices,",
-        "so treat these numbers as a rough guide and listen for yourself.",
-    ]
+            line += (" Hints given for: " + ", ".join(session.words_helped) + "." if session.words_helped
+                     else " No hints needed.")
+        lines.append(line)
+    if session.questions_asked:
+        lines.append(f"Talked about {session.questions_asked} story question(s).")
+    if full_report_coming:
+        lines += ["", "A full report, with the words to practise, will follow by email in a few minutes."]
     return "\n".join(lines) + "\n"
+
+
+def _compared(first: float, second: float) -> str:
+    if second >= first * 1.05:
+        return ", a little quicker than the first"
+    if second <= first * 0.95:
+        return ", a little slower than the first"
+    return ", about the same pace as the first"
 
 
 #: Enough words for an adult to act on; a longer list reads as noise.
