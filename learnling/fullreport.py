@@ -15,9 +15,10 @@ pointer for the adult, a hint of what to listen for, not a score.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 
-from learnling.agents.reading import ReadingAgent
+from learnling.agents.reading import ReadingAgent, normalize_words
 from learnling.patterns import PATTERN_NAMES
 from learnling.record import write_wav
 from learnling.report import _NOT_MISTAKES, _describe, _pattern_summary, _words_to_look_at
@@ -66,9 +67,30 @@ def score_reads(reads, asr, confidence: float = FULL_REPORT_CONFIDENCE):
     return results
 
 
+def hard_page_words(passage: str) -> set[str]:
+    """Page words no recogniser reads reliably: abbreviations (IEPs, DIBELS) and numbers."""
+    hard = set()
+    for raw in passage.split():
+        if re.search(r"\d", raw) or sum(c.isupper() for c in raw) >= 2:
+            hard.update(normalize_words(raw))
+    return hard
+
+
+def _worth_listing(entry: dict, hard: set[str]) -> bool:
+    # An "added" word is nearly always the recogniser filling a pause, and an
+    # adult can't act on it, so the full report leaves those out.
+    if entry["kind"] == "insertion":
+        return False
+    return entry["word"] not in hard
+
+
 def full_report_text(scored, words_helped: list[str]) -> str:
     """Plain-text full report from `score_reads` output."""
-    stats = [{"words_to_look_at": _words_to_look_at({"reading_result": result})} for _, _, result in scored]
+    stats = []
+    for _, _, result in scored:
+        hard = hard_page_words(result.passage)
+        entries = _words_to_look_at({"reading_result": result})
+        stats.append({"words_to_look_at": [e for e in entries if _worth_listing(e, hard)]})
     lines = ["learnling full report", ""]
     for (number, hints, result), stat in zip(scored, stats):
         label = "First read (with hints)" if hints else "Second read (on their own)"
