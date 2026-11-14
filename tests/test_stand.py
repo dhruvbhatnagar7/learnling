@@ -223,3 +223,21 @@ def test_the_full_report_rescores_both_reads_and_keeps_no_audio(tmp_path):
     assert '"ran", read as "run"' in text
     assert "No words stood out." in text  # the clean second read
     assert "can get words wrong" in text
+
+
+def test_the_full_report_leaves_out_added_words_and_abbreviations():
+    from learnling.asr.base import utterance_from_words
+    from learnling.fullreport import full_report_text, hard_page_words, score_reads
+
+    page = "Teachers use DIBELS and IEPs with 11 children who jumped"
+    said = "a teachers use debels and i with one children uh who jump"
+
+    class FakeASR:
+        def transcribe(self, path):
+            return utterance_from_words([(w, i * 0.5, i * 0.5 + 0.4, 0.95) for i, w in enumerate(said.split())])
+
+    assert hard_page_words(page) == {"dibels", "ieps", "eleven"}
+    text = full_report_text(score_reads([(1, True, b"\1\0" * 1600, page)], FakeASR()), [])
+    assert '"jumped", read as "jump" (dropped the -ed ending)' in text
+    assert "added" not in text
+    assert "dibels" not in text and "ieps" not in text and "eleven" not in text
