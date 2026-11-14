@@ -275,15 +275,18 @@ def cmd_live(args: argparse.Namespace) -> None:
 
 def cmd_stand(args: argparse.Namespace) -> None:
     from learnling.asr.sherpa import SherpaStreamingASR
-    from learnling import buddy as buddy_mod, emailer, live, live_io, stand
+    from learnling import buddy as buddy_mod, emailer, live, live_io, page, stand
 
-    from learnling.page import passage_path
-
-    try:
-        passage_text = passage_path(args.passage).read_text().strip()
-    except FileNotFoundError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
+    if not args.from_phone and not args.passage:
+        print("error: give --passage, or --from-phone to wait for a story from the phone page", file=sys.stderr)
+        raise SystemExit(1)
+    passage_text = None
+    if args.passage:
+        try:
+            passage_text = page.passage_path(args.passage).read_text().strip()
+        except FileNotFoundError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
     try:
         recognizer = SherpaStreamingASR(args.model)
         voice = live_io.PreparedVoice(
@@ -293,7 +296,6 @@ def cmd_stand(args: argparse.Namespace) -> None:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 
-    print(f"Passage:\n\n  {passage_text}\n")
     print(f"Loading {args.llm}...")
     try:
         chat = buddy_mod.make_chat(args.llm)
@@ -303,38 +305,76 @@ def cmd_stand(args: argparse.Namespace) -> None:
                 else f"Is Ollama installed, and has 'ollama pull {args.llm}' finished?")
         print(f"error: could not reach {args.llm} ({exc}). {hint}", file=sys.stderr)
         raise SystemExit(1) from exc
-    buddy = buddy_mod.ReadingBuddy(passage_text, args.age, chat=chat)
-
-    questions = _approve_questions(buddy.questions(args.questions)) if args.questions else []
-
-    if voice is not None:
-        orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
-        fixed = [live.orchestrator_say(orchestrator, stand.GO_LINE)]
-        lines = fixed + [buddy.spoken(q) for q in questions]
-        # A cloud voice answers in about a second, quick enough for a hint, so
-        # only a slow voice on the stand makes every hint line ahead of time.
-        if not isinstance(voice.voice, live_io.CloudVoice):
-            lines += live.lines_for_passage(passage_text, args.age)
-        voice.prepare(lines)
 
     light = live_io.ListeningLight(args.led_pin)
     speaker = live_io.Speaker(voice, light=light)
-    session = stand.run_stand(
-        passage_text, recognizer,
-        lambda seconds: live_io.mic_chunks(speaker, seconds, enter_stops=False),
-        speaker, buddy, questions, age_years=args.age, light=light, wake=not args.no_wake,
-    )
-    light.off()
 
-    body = emailer.report_text(session)
-    print("\n" + body)
-    if args.email_to:
+    def session(passage_text: str, approve: bool, announce: str | None = None) -> None:
+        print(f"Passage:\n\n  {passage_text}\n")
+        buddy = buddy_mod.ReadingBuddy(passage_text, args.age, chat=chat)
+        questions = buddy.questions(args.questions) if args.questions else []
+        if approve:
+            questions = _approve_questions(questions)
+        if voice is not None:
+            orchestrator = Orchestrator(LearnerProfile(age_years=args.age))
+            fixed = [live.orchestrator_say(orchestrator, stand.GO_LINE)]
+            lines = fixed + [buddy.spoken(q) for q in questions]
+            # A cloud voice answers in about a second, quick enough for a hint, so
+            # only a slow voice on the stand makes every hint line ahead of time.
+            if not isinstance(voice.voice, live_io.CloudVoice):
+                lines += live.lines_for_passage(passage_text, args.age)
+            voice.prepare(lines)
+        if announce:
+            speaker(announce)
+        result = stand.run_stand(
+            passage_text, recognizer,
+            lambda seconds: live_io.mic_chunks(speaker, seconds, enter_stops=False),
+            speaker, buddy, questions, age_years=args.age, light=light, wake=not args.no_wake,
+        )
+        light.off()
+        body = emailer.report_text(result)
+        print("\n" + body)
+        if args.email_to:
+            try:
+                emailer.send_report(args.email_to, body)
+                print(f"Emailed the report to {args.email_to}")
+            except Exception as exc:  # noqa: BLE001 - the session is over; say why and keep the report
+                print(f"Could not email the report: {exc}", file=sys.stderr)
+        _maybe_save_report(result.orchestrator, args.save_report)
+
+    if not args.from_phone:
+        session(passage_text, approve=not args.skip_approval)
+        return
+
+    # Wait for stories from the phone page. Nobody is at a keyboard, so the
+    # questions are asked as written.
+    import queue
+
+    stories: queue.Queue[str] = queue.Queue()
+    try:
+        page.serve_in_background(page.openai_vision(args.vision_model), stories.put, port=args.port)
+    except (RuntimeError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    print(f"On a phone on the same WiFi, open http://learnling.local:{args.port}  (Ctrl+C to stop)")
+    try:
+        while True:
+            print("\nWaiting for a story from the phone page...")
+            session(_newest(stories), approve=False, announce=stand.STORY_READY_LINE)
+    except KeyboardInterrupt:
+        light.off()
+
+
+def _newest(stories) -> str:
+    """Wait for a story; if several were saved meanwhile, the last one wins."""
+    import queue
+
+    text = stories.get()
+    while True:
         try:
-            emailer.send_report(args.email_to, body)
-            print(f"Emailed the report to {args.email_to}")
-        except Exception as exc:  # noqa: BLE001 - the session is over; say why and keep the report
-            print(f"Could not email the report: {exc}", file=sys.stderr)
-    _maybe_save_report(session.orchestrator, args.save_report)
+            text = stories.get_nowait()
+        except queue.Empty:
+            return text
 
 
 def cmd_page(args: argparse.Namespace) -> None:
@@ -468,7 +508,7 @@ def build_parser() -> argparse.ArgumentParser:
         "stand", help="A hands-free session on the book stand: started by voice, with a small model on the stand"
     )
     stand_parser.add_argument(
-        "--passage", required=True,
+        "--passage",
         help="Path to a passage text file, or 'today' for the story saved from the phone page",
     )
     stand_parser.add_argument("--model", required=True, help="Folder of a sherpa-onnx streaming model")
@@ -484,6 +524,12 @@ def build_parser() -> argparse.ArgumentParser:
     stand_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
     stand_parser.add_argument("--email-to", help="Email the report here (needs LEARNLING_SMTP_USER and LEARNLING_SMTP_PASSWORD)")
     stand_parser.add_argument("--save-report", help="Write a session report to this path")
+    stand_parser.add_argument("--from-phone", action="store_true",
+                              help="Keep running: serve the phone page, and start a session each time a story is saved there")
+    stand_parser.add_argument("--skip-approval", action="store_true",
+                              help="Ask the story questions as written, without an adult checking them first")
+    stand_parser.add_argument("--port", type=int, default=8000, help="Port of the phone page with --from-phone (default 8000)")
+    stand_parser.add_argument("--vision-model", default="gpt-4.1-mini", help="OpenAI model that reads the photo with --from-phone")
     stand_parser.set_defaults(func=cmd_stand)
 
     page_parser = subparsers.add_parser(

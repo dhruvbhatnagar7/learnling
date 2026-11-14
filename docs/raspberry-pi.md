@@ -132,6 +132,18 @@ the session with `--passage today` to read it. The photo goes to OpenAI's vision
 text (needs `OPENAI_API_KEY`) and is never saved; only the checked text is kept, in
 `~/learnling-passages/`. The page has no login, so anyone on the home WiFi can open it.
 
+To skip the terminal, leave one command running on the stand and do everything else from the phone:
+
+```
+python -m learnling stand --from-phone --model ~/models/nemotron-560 --voice openai:marin --llm openai:gpt-4.1-mini --age 7
+```
+
+It serves the same phone page. When the parent taps "Use this story", the stand says "I have your
+story ready. Say ready when you want to read." The child says "ready" and the session runs as usual.
+Afterwards the stand waits for the next story. In this mode nobody is at a keyboard, so the story
+questions are asked as the model wrote them (they still pass the safety check) instead of being
+approved by an adult first.
+
 ## Family pilot: record only
 
 The first children read with learnling silent: no hints, no corrections, no score. The stand only records,

@@ -33,6 +33,9 @@ WAKE_WORDS = ("ready",)
 #: "read" is easily missed.
 GO_LINE = "When I say go, start reading. Ready? Go!"
 
+#: What the stand says when a story arrives from the phone page.
+STORY_READY_LINE = "I have your story ready. Say ready when you want to read."
+
 #: How long one listening window lasts while waiting for a word; the
 #: recogniser starts fresh each window so a long wait doesn't pile up.
 _WINDOW_SECONDS = 10.0

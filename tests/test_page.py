@@ -74,3 +74,37 @@ def test_a_long_story_is_saved_with_a_warning(server):
     base, _ = server
     reply = _post(base + "/save", json.dumps({"text": "word " * 300}).encode(), "application/json")
     assert reply["saved"] and "long" in reply["warning"]
+
+
+def test_a_saved_story_is_handed_to_a_waiting_stand(tmp_path):
+    from learnling.page import serve_in_background
+
+    stories = []
+    httpd = serve_in_background(lambda m: "", stories.append, port=0, folder=tmp_path)
+    try:
+        base = f"http://127.0.0.1:{httpd.server_port}"
+        _post(base + "/save", json.dumps({"text": "  A big red bus went by.  "}).encode(), "application/json")
+        assert "error" in _post(base + "/save", json.dumps({"text": "hi"}).encode(), "application/json")
+    finally:
+        httpd.shutdown()
+    assert stories == ["A big red bus went by."]
+
+
+def test_the_newest_story_wins_when_several_are_waiting():
+    import queue
+
+    from learnling.cli import _newest
+
+    stories = queue.Queue()
+    for text in ("first story here", "second story here"):
+        stories.put(text)
+    assert _newest(stories) == "second story here"
+    assert stories.empty()
+
+
+def test_stand_needs_a_passage_or_the_phone(capsys):
+    from learnling.cli import main
+
+    with pytest.raises(SystemExit):
+        main(["stand", "--model", "nowhere"])
+    assert "--from-phone" in capsys.readouterr().err

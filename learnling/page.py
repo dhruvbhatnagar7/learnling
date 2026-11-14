@@ -92,7 +92,8 @@ def passage_path(name: str, folder: Path | None = None) -> Path:
     return Path(name)
 
 
-def make_handler(ask, folder: Path | None = None):
+def make_handler(ask, folder: Path | None = None, on_saved=None):
+    """`on_saved(text)` is called with each story the parent saves, so a waiting stand can start."""
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):  # keep the terminal quiet
             pass
@@ -134,7 +135,9 @@ def make_handler(ask, folder: Path | None = None):
                 text = json.loads(body or b"{}").get("text", "")
                 if len(text.split()) < 3:
                     return self._json(400, {"error": "That's too short for a story."})
-                save_passage(text, folder)
+                saved = save_passage(text, folder)
+                if on_saved is not None:
+                    on_saved(saved.read_text().strip())
                 words = len(text.split())
                 reply = {"saved": True, "words": words}
                 if words > LONG_STORY_WORDS:
@@ -148,6 +151,15 @@ def make_handler(ask, folder: Path | None = None):
 
 def _html(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def serve_in_background(ask, on_saved, port: int = 8000, folder: Path | None = None) -> ThreadingHTTPServer:
+    """Serve the phone page on a background thread; `on_saved(text)` gets each saved story."""
+    import threading
+
+    server = ThreadingHTTPServer(("0.0.0.0", port), make_handler(ask, folder, on_saved))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
 
 
 def serve(ask, port: int = 8000, folder: Path | None = None) -> None:  # pragma: no cover - runs forever
