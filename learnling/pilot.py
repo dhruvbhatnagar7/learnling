@@ -81,7 +81,7 @@ def stand_recorder(child: str, age: int, passage_text: str, root: Path | None = 
     child = check_child_code(child)
     folder = (root or pilot_root()) / child
 
-    def on_read(number: int, hints: bool, pcm: bytes) -> None:
+    def on_read(number: int, hints: bool, pcm: bytes, passage: str | None = None) -> None:
         if not pcm:
             return
         note = f"read {number}, " + ("with hints" if hints else "no hints")

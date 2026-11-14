@@ -177,6 +177,14 @@ Only the reads are saved, never the answers to the questions. Each recording's l
 was: read 1 has hints, so the child may repeat a word after hearing it; read 2 has none and is the cleaner
 one for measuring accuracy. Stop and restart with the next code before the next child reads.
 
+**Full report.** Add `--full-report ~/models/kid-whisper` (or `--full-report base.en`) to `stand`, and
+`--email-to` to email it. Right after the session the adult gets the short report; then the stand scores
+both reads again with that slower model, on the stand, and sends a full report with words correct per
+minute, the words to look at (including dropped endings) and patterns. The audio is held in memory for
+this and deleted once it is scored. The report says plainly that learnling can get words wrong. Install
+the model on the stand first with `pip install -e '.[asr]'`, and copy a converted model folder over from
+the laptop if you use Kid-Whisper.
+
 **Afterwards, on the laptop** (not over SSH):
 
 ```

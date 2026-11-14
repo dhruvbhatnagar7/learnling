@@ -124,8 +124,9 @@ def run_stand(
 ) -> StandSession:
     """One hands-free session. `open_mic(max_seconds)` gives a fresh stream of microphone chunks.
 
-    `on_read(number, hints, pcm)`, if given, gets the audio of read 1 (with
-    hints) and read 2 (without), for the pilot.
+    `on_read(number, hints, pcm, passage=...)`, if given, gets the audio of
+    read 1 (with hints) and read 2 (without), and the part of the page each
+    read covered, for the pilot recording and the full report.
     """
     orchestrator = Orchestrator(LearnerProfile(age_years=age_years))
     orchestrator.load_passage(passage_text)
@@ -146,13 +147,15 @@ def run_stand(
         utterance = run_reading(coach, chunks, speak, stop_when=said_stop_word)
         if light:
             light.off()
-        if on_read:
-            on_read(1 if hints else 2, hints, b"".join(heard))
         on_status(f"  (read heard as: {utterance.text})")
         # A reader who stops partway is scored on the part they read, not
         # marked as skipping the rest of the page.
+        read_text = passage_text
         if not coach.finished and coach.tracker.position > 0:
-            orchestrator.load_passage(" ".join(coach.tracker.expected[:coach.tracker.position]))
+            read_text = " ".join(coach.tracker.expected[:coach.tracker.position])
+            orchestrator.load_passage(read_text)
+        if on_read:
+            on_read(1 if hints else 2, hints, b"".join(heard), passage=read_text)
         orchestrator.handle_utterance(_without_stop_word(utterance))
         orchestrator.load_passage(passage_text)
         result = orchestrator.session.events[-1]["report_notes"]["reading_result"]

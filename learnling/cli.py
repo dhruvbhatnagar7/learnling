@@ -314,6 +314,18 @@ def cmd_stand(args: argparse.Namespace) -> None:
         print(f"error: could not reach {args.llm} ({exc}). {hint}", file=sys.stderr)
         raise SystemExit(1) from exc
 
+    scorer = None
+    if args.full_report:
+        from learnling.asr.whisper import WhisperASR
+
+        print(f"Loading {args.full_report} for the full report...")
+        try:
+            scorer = WhisperASR(model_size=args.full_report)
+        except (ImportError, RuntimeError, ValueError, OSError) as exc:
+            print(f"error: could not load {args.full_report} ({exc}). "
+                  "The full report needs the 'asr' extra: pip install -e '.[asr]'", file=sys.stderr)
+            raise SystemExit(1) from exc
+
     light = live_io.ListeningLight(args.led_pin)
     speaker = live_io.Speaker(voice, light=light)
 
@@ -338,6 +350,11 @@ def cmd_stand(args: argparse.Namespace) -> None:
 
             on_read = stand_recorder(args.pilot, args.age, passage_text)
             print(f"Pilot: saving both reads for {args.pilot} on this stand (answers are not saved).")
+        keeper = None
+        if scorer is not None:
+            from learnling.fullreport import ReadKeeper
+
+            on_read = keeper = ReadKeeper(also=on_read)
         if announce:
             speaker(announce)
         result = stand.run_stand(
@@ -347,15 +364,21 @@ def cmd_stand(args: argparse.Namespace) -> None:
             on_read=on_read,
         )
         light.off()
-        body = emailer.report_text(result)
+        body = emailer.report_text(result, full_report_coming=bool(keeper and args.email_to))
         print("\n" + body)
-        if args.email_to:
-            try:
-                emailer.send_report(args.email_to, body)
-                print(f"Emailed the report to {args.email_to}")
-            except Exception as exc:  # noqa: BLE001 - the session is over; say why and keep the report
-                print(f"Could not email the report: {exc}", file=sys.stderr)
+        _email(args.email_to, body)
         _maybe_save_report(result.orchestrator, args.save_report)
+        if keeper is not None and keeper.reads:
+            from learnling.fullreport import full_report_text, score_reads
+
+            print("Scoring the reads again for the full report...")
+            try:
+                scored = score_reads(keeper.reads, scorer, args.full_report_confidence)
+            finally:
+                keeper.clear()  # the audio is never kept past this point
+            full = full_report_text(scored, result.words_helped)
+            print("\n" + full)
+            _email(args.email_to, full, subject="learnling full report")
 
     if not args.from_phone:
         session(passage_text, approve=not args.skip_approval)
@@ -378,6 +401,18 @@ def cmd_stand(args: argparse.Namespace) -> None:
             session(_newest(stories), approve=False, announce=stand.STORY_READY_LINE)
     except KeyboardInterrupt:
         light.off()
+
+
+def _email(to: str | None, body: str, subject: str | None = None) -> None:
+    from learnling import emailer
+
+    if not to:
+        return
+    try:
+        emailer.send_report(to, body, subject=subject)
+        print(f"Emailed the report to {to}")
+    except Exception as exc:  # noqa: BLE001 - the session is over; say why and keep the report
+        print(f"Could not email the report: {exc}", file=sys.stderr)
 
 
 def _newest(stories) -> str:
@@ -541,6 +576,11 @@ def build_parser() -> argparse.ArgumentParser:
     stand_parser.add_argument("--save-report", help="Write a session report to this path")
     stand_parser.add_argument("--from-phone", action="store_true",
                               help="Keep running: serve the phone page, and start a session each time a story is saved there")
+    stand_parser.add_argument("--full-report", metavar="MODEL",
+                              help="After the session, score the reads again with this Whisper model (a size such as "
+                                   "base.en, or a converted model folder such as ~/models/kid-whisper) for a full report")
+    stand_parser.add_argument("--full-report-confidence", type=float, default=0.5,
+                              help="How sure the full report's model must be to list a word (default 0.5)")
     stand_parser.add_argument("--pilot", metavar="CHILD",
                               help="Family pilot: save both reads under this child code (child03, never a name) "
                                    "for scoring later. Only with a signed consent form")

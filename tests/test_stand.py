@@ -187,3 +187,39 @@ def test_the_pilot_needs_a_child_code(capsys):
     with pytest.raises(SystemExit):
         main(["stand", "--passage", "passages/sample_level1.txt", "--model", "x", "--pilot", "Sam"])
     assert "never a name" in capsys.readouterr().err
+
+
+def test_the_full_report_rescores_both_reads_and_keeps_no_audio(tmp_path):
+    from learnling.asr.base import utterance_from_words
+    from learnling.fullreport import ReadKeeper, full_report_text, score_reads
+
+    rec = PhaseRecognizer([
+        [(1.0, "im ready to read")],
+        [(0.5, PASSAGE)],
+        [(0.5, PASSAGE)],
+    ])
+    buddy = ReadingBuddy(PASSAGE, 7, chat=FakeChat())
+    keeper = ReadKeeper()
+    session = run_stand(PASSAGE, rec, open_mic, lambda text: None, buddy, [],
+                        on_status=lambda text: None, on_read=keeper)
+    assert [(n, h) for n, h, _, _ in keeper.reads] == [(1, True), (2, False)]
+
+    class CarefulASR:
+        """The slower model hears the dropped ending the live one missed."""
+        def __init__(self):
+            self.paths = []
+
+        def transcribe(self, path):
+            self.paths.append(path)
+            said = "the big dog run to the park" if len(self.paths) == 1 else PASSAGE
+            return utterance_from_words([(w, i * 0.5, i * 0.5 + 0.4, 0.95) for i, w in enumerate(said.split())])
+
+    import os
+
+    asr = CarefulASR()
+    scored = score_reads(keeper.reads, asr)
+    assert not any(os.path.exists(p) for p in asr.paths)  # temporary audio is deleted
+    text = full_report_text(scored, session.words_helped)
+    assert '"ran", read as "run"' in text
+    assert "No words stood out." in text  # the clean second read
+    assert "can get words wrong" in text
