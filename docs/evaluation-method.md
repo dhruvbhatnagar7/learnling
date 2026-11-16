@@ -52,7 +52,8 @@ a skip, in turn). Clips and edits are chosen with a fixed random seed.
 - **Vosk**, small English model `vosk-model-small-en-us-0.15`, limited to the words on the page plus an
   "unknown" token (`learnling/asr/vosk.py`).
 - **Whisper**, `base.en` through faster-whisper, open vocabulary, never given the passage as a prompt
-  (`learnling/asr/whisper.py`).
+  (`learnling/asr/whisper.py`). Since November 2026 learnling gives Whisper the passage by default
+  (`--no-story-prompt` turns it off); these runs predate that.
 
 Both ran on a CPU in a cloud container with learnling's default confidence threshold (0.75).
 

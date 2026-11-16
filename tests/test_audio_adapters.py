@@ -45,7 +45,7 @@ def _fake_whisper(words):
     return FakeModel()
 
 
-def test_whisper_is_never_prompted_with_the_passage():
+def test_whisper_is_not_prompted_unless_asked():
     model = _fake_whisper([(" The", 0.0, 0.2, 0.9)])
     WhisperASR(model=model, find_speech=lambda path: [0.5, 3.0, 6.0, 9.0]).transcribe("reading.wav")
     assert "initial_prompt" not in model.kwargs
@@ -53,6 +53,21 @@ def test_whisper_is_never_prompted_with_the_passage():
     assert model.kwargs["vad_filter"] is False
     assert model.kwargs["clip_timestamps"] == [0.5, 3.0, 6.0, 9.0]
     assert model.kwargs["condition_on_previous_text"] is False
+
+
+def test_a_story_prompt_is_given_for_every_stretch_of_speech():
+    model = _fake_whisper([(" The", 0.0, 0.2, 0.9)])
+    calls = []
+    real = model.transcribe
+    model.transcribe = lambda audio, **kw: (calls.append(kw), real(audio, **kw))[1]
+    asr = WhisperASR(model=model, find_speech=lambda path: [0.5, 3.0, 6.0, 9.0]).with_prompt(PASSAGE)
+    utterance = asr.transcribe("reading.wav")
+    assert [c["clip_timestamps"] for c in calls] == [[0.5, 3.0], [6.0, 9.0]]
+    assert all(c["initial_prompt"] == PASSAGE for c in calls)
+    assert normalize_words(utterance.text) == ["the", "the"]
+    # Turning it off again keeps the same loaded model.
+    assert asr.with_prompt(None).prompt is None
+    assert asr.with_prompt(None)._model is model
 
 
 def test_a_shaky_whisper_word_is_held_back_from_the_child():

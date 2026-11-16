@@ -68,7 +68,10 @@ def _build_asr(args: argparse.Namespace, passage_text: str | None):
 
         from learnling.asr.whisper import WhisperASR
 
-        return WhisperASR(model_size=getattr(args, "whisper_model", "base.en"))
+        story = passage_text if getattr(args, "story_prompt", True) else None
+        if not hasattr(args, "_whisper"):
+            args._whisper = WhisperASR(model_size=getattr(args, "whisper_model", "base.en"))
+        return args._whisper.with_prompt(story)
     except ImportError as exc:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
@@ -397,7 +400,7 @@ def cmd_stand(args: argparse.Namespace) -> None:
 
             def full_report() -> None:
                 try:
-                    scored = score_reads(reads, scorer, args.full_report_confidence)
+                    scored = score_reads(reads, scorer, args.full_report_confidence, args.story_prompt)
                 finally:
                     reads.clear()  # the audio is never kept past this point
                 full = full_report_text(scored, helped)
@@ -491,6 +494,14 @@ class _Lazy:
         return iter(self._make())
 
 
+def _add_story_prompt_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--no-story-prompt", dest="story_prompt", action="store_false",
+        help="Don't give Whisper the passage text before it listens (it is given by default: fewer correct "
+        "words called wrong, but some real misreadings are written as the page word)",
+    )
+
+
 def _add_asr_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--asr",
@@ -503,6 +514,7 @@ def _add_asr_flags(parser: argparse.ArgumentParser) -> None:
         "--whisper-model", default="base.en",
         help="Whisper model size, or the folder of a converted faster-whisper model (default base.en)",
     )
+    _add_story_prompt_flag(parser)
     parser.add_argument("--vosk-model", help="Folder of a Vosk small model (needed for --asr vosk)")
     parser.add_argument(
         "--model",
@@ -611,6 +623,7 @@ def build_parser() -> argparse.ArgumentParser:
                                    "base.en, or a converted model folder such as ~/models/kid-whisper) for a full report")
     stand_parser.add_argument("--full-report-confidence", type=float, default=0.5,
                               help="How sure the full report's model must be to list a word (default 0.5)")
+    _add_story_prompt_flag(stand_parser)
     stand_parser.add_argument("--pilot", metavar="CHILD",
                               help="Family pilot: save both reads under this child code (child03, never a name) "
                                    "for scoring later. Only with a signed consent form")
