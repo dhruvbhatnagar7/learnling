@@ -241,3 +241,25 @@ def test_the_full_report_leaves_out_added_words_and_abbreviations():
     assert '"jumped", read as "jump" (dropped the -ed ending)' in text
     assert "added" not in text
     assert "dibels" not in text and "ieps" not in text and "eleven" not in text
+
+
+def test_the_full_report_tells_the_scorer_each_page():
+    from learnling.asr.base import utterance_from_words
+    from learnling.fullreport import score_reads
+
+    class PromptableASR:
+        def __init__(self, prompt=None, seen=None):
+            self.prompt, self.seen = prompt, seen if seen is not None else []
+
+        def with_prompt(self, passage):
+            return PromptableASR(passage, self.seen)
+
+        def transcribe(self, path):
+            self.seen.append(self.prompt)
+            return utterance_from_words([("the", 0.0, 0.4, 0.95)])
+
+    asr = PromptableASR()
+    reads = [(1, True, b"\1\0" * 1600, "page one"), (2, False, b"\1\0" * 1600, "page two")]
+    score_reads(reads, asr, story_prompt=True)
+    score_reads(reads, asr)
+    assert asr.seen == ["page one", "page two", None, None]

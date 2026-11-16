@@ -11,10 +11,13 @@ anything above the ASR layer.
 
 Two settings here matter more than they look:
 
-- The passage is never given to Whisper as a prompt. Whisper is built to
-  produce fluent, plausible text, and with the expected words in its prompt
-  it will quietly turn "stem" back into "steam". That hides exactly the
-  mistakes a reading tutor exists to catch.
+- The passage can be given to Whisper as a prompt (`prompt=`, or
+  `with_prompt(passage)`), and learnling does so by default. It is a trade-off:
+  with the expected words in front of it, Whisper hears unclear children's
+  words better, but it will sometimes write the page word ("steam") when the
+  reader said something else ("stem"). On the 600 children's test cases it
+  halved correct words called wrong for Kid-Whisper (11.8% to 5.6%) and
+  caught fewer real errors (61% to 52%). `--no-story-prompt` turns it off.
 - Voice activity filtering is on, because Whisper tends to invent words
   over silence, and a child pausing on a hard word is silence.
 - Each stretch of speech the voice detector finds is decoded on its own.
@@ -48,8 +51,11 @@ class WhisperASR:
     decode, as flat [start, end, start, end, ...] seconds.
     """
 
-    def __init__(self, model_size: str = "base.en", model=None, find_speech=None, **model_kwargs):
+    def __init__(
+        self, model_size: str = "base.en", model=None, find_speech=None, prompt: str | None = None, **model_kwargs
+    ):
         self._find_speech = find_speech or _speech_clips
+        self.prompt = prompt.strip() if prompt and prompt.strip() else None
         if model is None:
             try:
                 from faster_whisper import WhisperModel
@@ -67,18 +73,32 @@ class WhisperASR:
         clips = self._find_speech(audio)
         if not clips:
             return utterance_from_words([])
-        segments, _info = self._model.transcribe(
-            audio,
+        options = dict(
             # Multilingual models (such as children's fine-tunes of whisper-small)
             # otherwise guess the language, and an accent can tip the guess.
             language="en",
             word_timestamps=True,
             vad_filter=False,
-            clip_timestamps=clips,
             condition_on_previous_text=False,
         )
-        words = [word for segment in segments for word in (segment.words or [])]
+        if self.prompt is None:
+            runs = [{"clip_timestamps": clips}]
+        else:
+            # faster-whisper only uses the prompt for the first window when
+            # condition_on_previous_text is off, so each stretch gets its own call.
+            runs = [
+                {"clip_timestamps": clips[i:i + 2], "initial_prompt": self.prompt}
+                for i in range(0, len(clips), 2)
+            ]
+        words = []
+        for run in runs:
+            segments, _info = self._model.transcribe(audio, **options, **run)
+            words += [word for segment in segments for word in (segment.words or [])]
         return utterance_from_words(
             [(w.word, w.start, w.end, w.probability) for w in words]
         )
 
+    def with_prompt(self, passage: str | None) -> "WhisperASR":
+        """The same loaded model, prompted with `passage` (None for no prompt)."""
+        copy = WhisperASR(model=self._model, find_speech=self._find_speech, prompt=passage)
+        return copy

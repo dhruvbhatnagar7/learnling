@@ -51,8 +51,12 @@ class ReadKeeper:
         self.reads = []
 
 
-def score_reads(reads, asr, confidence: float = FULL_REPORT_CONFIDENCE):
-    """Each read's `ReadingResult`, from `asr.transcribe(wav_path)`. Audio is deleted after."""
+def score_reads(reads, asr, confidence: float = FULL_REPORT_CONFIDENCE, story_prompt: bool = False):
+    """Each read's `ReadingResult`, from `asr.transcribe(wav_path)`. Audio is deleted after.
+
+    With `story_prompt`, `asr` must have `with_prompt` (WhisperASR does): each read
+    is transcribed with its passage as the prompt.
+    """
     agent = ReadingAgent()
     results = []
     for number, hints, pcm, passage in reads:
@@ -60,7 +64,8 @@ def score_reads(reads, asr, confidence: float = FULL_REPORT_CONFIDENCE):
         os.close(handle)
         try:
             write_wav(path, pcm)
-            utterance = asr.transcribe(path)
+            # A Whisper scorer hears unclear words better when it is told the page.
+            utterance = (asr.with_prompt(passage) if story_prompt else asr).transcribe(path)
         finally:
             os.remove(path)
         results.append((number, hints, agent.assess(passage, utterance, confidence)))
