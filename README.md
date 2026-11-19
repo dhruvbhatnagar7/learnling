@@ -6,6 +6,8 @@
 ![Status: v0](https://img.shields.io/badge/status-v0-orange)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23382879.svg)](https://doi.org/10.5281/zenodo.23382879)
 
+**[Educator deck (PDF)](https://drive.google.com/file/d/17CLiCcwUdXZXHKfqia9jOkzuUdwtP0Rj/view)**
+
 ![A child on a living room sofa reads a printed page aloud to a small speaker on the side table](docs/learnling-at-home.svg)
 
 **An open, screen-free reading companion for home.** It listens while a child reads aloud, helps in
