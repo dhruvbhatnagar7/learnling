@@ -51,7 +51,7 @@ def test_saying_done_ends_the_reading():
     rec = ScriptedRecognizer([(0.5, "the big"), (1.0, "the big done")])
     coach = ReadingCoach(PASSAGE, rec)
     run_reading(coach, open_mic(20), lambda text: None, stop_when=said_stop_word)
-    assert coach.heard_seconds < 1.2
+    assert 1.7 < coach.heard_seconds < 2.0  # "done" held for a moment, then the read ends
 
 
 def test_done_on_the_page_is_read_not_obeyed():
@@ -263,3 +263,23 @@ def test_the_full_report_tells_the_scorer_each_page():
     score_reads(reads, asr, story_prompt=True)
     score_reads(reads, asr)
     assert asr.seen == ["page one", "page two", None, None]
+
+
+def test_stopped_on_the_page_does_not_end_the_reading():
+    """A streaming recogniser shows "stopped" as "stop" for a moment before the ending arrives."""
+    page = "she ran across the warm sand and stopped at the edge of the water"
+    rec = ScriptedRecognizer([
+        (0.5, "she ran across the warm sand and stop"),
+        (0.7, "she ran across the warm sand and stopped"),
+        (1.5, page),
+    ])
+    coach = ReadingCoach(page, rec)
+    run_reading(coach, open_mic(20), lambda text: None, stop_when=said_stop_word)
+    assert coach.finished
+
+
+def test_a_half_heard_stop_word_alone_does_not_end_the_reading():
+    rec = ScriptedRecognizer([(0.5, "the big stop"), (0.6, "the big dog"), (1.5, "the big dog ran to the park")])
+    coach = ReadingCoach(PASSAGE, rec)
+    run_reading(coach, open_mic(20), lambda text: None, stop_when=said_stop_word)
+    assert coach.finished

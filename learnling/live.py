@@ -224,13 +224,32 @@ class LiveSessionResult:
 #: What a reader can say to end a reading early.
 STOP_WORDS = ("done", "finished", "stop")
 
+#: How long a stop word must stay the last word heard before the reading
+#: ends. A streaming recogniser writes a word as it hears it, so "stopped"
+#: shows up as "stop" for a moment before the ending arrives.
+STOP_HOLD_SECONDS = 0.8
+
 
 def said_stop_word(coach: ReadingCoach) -> bool:
-    """The reader just said "done" (and the page wasn't asking for that word)."""
+    """The reader said "done" (and the page wasn't asking for that word)."""
     heard = coach.recognizer.partial_words()
     if not heard or heard[-1] not in STOP_WORDS:
+        coach._stop_candidate = None
         return False
-    return heard[-1] not in coach.tracker.expected[max(0, coach.tracker.position - 1):coach.tracker.position + 2]
+    word = heard[-1]
+    position = coach.tracker.position
+    nearby = coach.tracker.expected[max(0, position - 1):position + 3]
+    # The page itself has the word, or a longer word starting with it
+    # ("stopped", "finished", "stopping"): that is reading, not asking to stop.
+    if any(page_word.startswith(word) for page_word in nearby):
+        coach._stop_candidate = None
+        return False
+    candidate = (len(heard), word)
+    if getattr(coach, "_stop_candidate", None) != candidate:
+        coach._stop_candidate = candidate
+        coach._stop_heard_at = coach.heard_seconds
+        return False
+    return coach.heard_seconds - coach._stop_heard_at >= STOP_HOLD_SECONDS
 
 
 def run_reading(coach: ReadingCoach, chunks, speak, done_after_seconds: float = 1.5, stop_when=None):
