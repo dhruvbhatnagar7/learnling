@@ -124,12 +124,14 @@ def run_stand(
     on_status=print,
     on_read=None,
     closing: str | None = None,
+    hints: bool = True,
 ) -> StandSession:
     """One hands-free session. `open_mic(max_seconds)` gives a fresh stream of microphone chunks.
 
     `on_read(number, hints, pcm, passage=...)`, if given, gets the audio of
     read 1 (with hints) and read 2 (without), and the part of the page each
-    read covered, for the pilot recording and the full report.
+    read covered, for the pilot recording and the full report. `hints=False`
+    keeps learnling quiet during read 1 as well.
     """
     orchestrator = Orchestrator(LearnerProfile(age_years=age_years))
     orchestrator.load_passage(passage_text)
@@ -164,7 +166,7 @@ def run_stand(
         result = orchestrator.session.events[-1]["report_notes"]["reading_result"]
         return coach, result
 
-    first_coach, first = reading(hints=True)
+    first_coach, first = reading(hints=hints)
     helped = list(dict.fromkeys(e.word for e in first_coach.events))
     speak(buddy.after_first_read(helped, first.accuracy))
     second_coach, _ = reading(hints=False)

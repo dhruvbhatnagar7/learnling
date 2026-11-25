@@ -101,6 +101,10 @@ class CoachEvent:
 # New words heard since the last match that show the reader is still going.
 _STILL_READING_WORDS = 3
 
+#: How far back a heard word may be on the page and still count as the
+#: reader going back over it (starting the sentence again after a hint).
+_REREAD_WINDOW = 12
+
 
 def hint_for(word: str) -> str:
     """Coach toward the word without saying it."""
@@ -137,6 +141,7 @@ class ReadingCoach:
         self._hinted_at: int | None = None
         self._started = False
         self._heard_at_move = 0
+        self._seen_words = 0
         self.recognizer.reset()
 
     def _speakable(self, text: str) -> str:
@@ -152,6 +157,9 @@ class ReadingCoach:
             self._started = True
             self._last_move = self.heard_seconds
 
+        new_words = heard[self._seen_words:]
+        self._seen_words = len(heard)
+
         before = self.tracker.position
         if self.tracker.update(heard) > before:
             self._last_move = self.heard_seconds
@@ -166,6 +174,15 @@ class ReadingCoach:
             self._heard_at_move = len(heard)
             return None
 
+        # Talking is not being stuck when the reader has just had a hint (they
+        # are trying the word) or is going back over words already read (they
+        # started the sentence again). Wait for them to go quiet before the
+        # next hint, rather than hinting at a word they are about to reach.
+        position = self.tracker.position
+        behind = set(self.tracker.expected[max(0, position - _REREAD_WINDOW):position])
+        if new_words and (self._hinted_at == position or behind.intersection(new_words)):
+            self._last_move = self.heard_seconds
+
         # A reader who has said nothing at all may be stuck on the first word;
         # give them twice as long before treating it that way.
         started = self._started or self.heard_seconds >= 2 * self.stuck_seconds
@@ -174,7 +191,6 @@ class ReadingCoach:
         if self.heard_seconds - self._last_move < self.stuck_seconds:
             return None
 
-        position = self.tracker.position
         word = self.tracker.current_word
         if self._hinted_at != position:
             self._hinted_at = position
