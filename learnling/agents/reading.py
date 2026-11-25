@@ -35,6 +35,41 @@ def _number_words(token: str) -> list[str]:
     tens, ones = divmod(n, 10)
     return [_TENS[tens - 2]] + ([_ONES[ones]] if ones else [])
 
+def _spell(n: int) -> list[str]:
+    """0 to 999,999 in words: 105 -> one hundred five."""
+    if n < 100:
+        return _number_words(str(n))
+    if n < 1000:
+        hundreds, rest = divmod(n, 100)
+        return [_ONES[hundreds], "hundred"] + (_spell(rest) if rest else [])
+    thousands, rest = divmod(n, 1000)
+    return _spell(thousands) + ["thousand"] + (_spell(rest) if rest else [])
+
+
+def _spoken_forms(token: str) -> list[list[str]]:
+    """Ways a page may write the number a recogniser wrote as digits.
+
+    "100" is "one hundred" or "a hundred", and "105" can be "one hundred and
+    five".
+    """
+    if not token.isdigit() or len(token) > 6:
+        return []
+    words = _spell(int(token))
+    forms = [words]
+    if "hundred" in words and words[-1] != "hundred":
+        at = words.index("hundred") + 1
+        forms.append(words[:at] + ["and"] + words[at:])
+    for form in list(forms):
+        if form[0] == "one" and len(form) > 1:
+            forms.append(["a"] + form[1:])
+    return forms
+
+
+def _contains(words: list[str], span: list[str]) -> bool:
+    n = len(span)
+    return any(words[i:i + n] == span for i in range(len(words) - n + 1))
+
+
 #: Confidence a candidate miscue must reach before the child hears about it.
 #:
 #: Miscue detection here is deliberately biased toward *not* flagging: high
@@ -109,7 +144,8 @@ def match_word_joins(
     recogniser picks one spelling and the page may use the other. Left alone,
     that counts as a misreading the child never made. A heard word that is two
     adjacent page words joined is split, and two heard words that join into a
-    page word are merged (keeping the lower confidence).
+    page word are merged (keeping the lower confidence). A number heard as
+    digits ("100") is written out the way the page says it ("a hundred").
     """
     page = set(expected_words)
     joined_pairs = {
@@ -128,7 +164,14 @@ def match_word_joins(
     while i < len(transcript_words):
         word = transcript_words[i]
         nxt = transcript_words[i + 1] if i + 1 < len(transcript_words) else None
-        if word not in page and word in joined_pairs:
+        spoken = next((f for f in _spoken_forms(word) if _contains(expected_words, f)), None)
+        if word not in page and spoken:
+            if words and len(spoken) > 1 and words[-1] == spoken[0]:
+                spoken = spoken[1:]  # "a 100" is "a hundred", not "a a hundred"
+            words += spoken
+            confidences += [conf(i)] * len(spoken)
+            i += 1
+        elif word not in page and word in joined_pairs:
             words += joined_pairs[word]
             confidences += [conf(i), conf(i)]
             i += 1
