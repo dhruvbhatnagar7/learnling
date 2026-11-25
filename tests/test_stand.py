@@ -94,6 +94,20 @@ def test_a_whole_session_by_voice():
     assert "by email" in report_text(session, full_report_coming=True)
 
 
+def test_no_hints_keeps_the_first_read_quiet():
+    rec = PhaseRecognizer([
+        [(1.0, "im ready to read")],
+        [(0.5, "the big"), (6.0, "the big dog ran to the park")],  # stuck on "dog"
+        [(0.5, PASSAGE)],
+    ])
+    spoken = []
+    buddy = ReadingBuddy(PASSAGE, 8, chat=FakeChat("You did it!"))
+    session = run_stand(PASSAGE, rec, open_mic, spoken.append, buddy, [],
+                        on_status=lambda text: None, hints=False)
+    assert session.words_helped == []
+    assert not any("starts with" in line or "That word is" in line for line in spoken)
+
+
 def test_buddy_falls_back_when_the_model_fails():
     def broken(messages, max_words=40):
         raise OSError("no model")

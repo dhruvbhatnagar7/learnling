@@ -385,7 +385,7 @@ def cmd_stand(args: argparse.Namespace) -> None:
             passage_text, recognizer,
             lambda seconds: live_io.mic_chunks(speaker, seconds, enter_stops=False),
             speaker, buddy, questions, age_years=args.age, light=light, wake=not args.no_wake,
-            on_read=on_read, closing=closing_line(),
+            on_read=on_read, closing=closing_line(), hints=not args.no_hints,
         )
         light.off()
         body = emailer.report_text(result, full_report_coming=bool(keeper and args.email_to))
@@ -612,6 +612,8 @@ def build_parser() -> argparse.ArgumentParser:
                               "OpenAI's cloud (sends the reader's words as text; check the consent form)")
     stand_parser.add_argument("--age", type=int, default=8, help="Reader's age in years (default 8)")
     stand_parser.add_argument("--questions", type=int, default=2, help="Story questions after reading (default 2)")
+    stand_parser.add_argument("--no-hints", action="store_true",
+                              help="No hints during the first read either; learnling just listens")
     stand_parser.add_argument("--no-wake", action="store_true", help="Start straight away, without waiting for \"I'm ready\"")
     stand_parser.add_argument("--led-pin", type=int, help="Raspberry Pi GPIO pin of the listening light")
     stand_parser.add_argument("--email-to", help="Email the report here (needs LEARNLING_SMTP_USER and LEARNLING_SMTP_PASSWORD)")

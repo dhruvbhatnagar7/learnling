@@ -167,3 +167,35 @@ def test_misheard_words_that_keep_coming_are_not_stuck():
               (2.5, "a guard sat on mud"), (3.0, "a guard sat on mud and"),
               (3.5, "a guard sat on mud and ran to"), (4.0, "a guard sat on mud and ran to the park")]
     assert _run(_coach(script), 5) == []
+
+
+REREAD = "letters went by boat then inventors discovered that electricity could carry signals"
+
+
+def test_starting_the_sentence_again_after_a_hint_is_not_stuck():
+    # Stuck on "inventors", hinted, then the reader starts the sentence again
+    # slowly. No second hint or supplied word while they are still reading.
+    script = [(0.5, "letters went by boat then"),
+              (5.0, "letters went by boat then in"),
+              (6.0, "letters went by boat then in then"),
+              (7.5, "letters went by boat then in then inven"),
+              (9.0, "letters went by boat then in then inven inventors"),
+              (10.0, "letters went by boat then in then inven inventors discovered that")]
+    coach = ReadingCoach(REREAD, ScriptedRecognizer(script), age_years=10)
+    said = _run(coach, 11)
+    assert said == [(4, "hint", "inventors")]
+    assert coach.tracker.position == 8
+
+
+def test_going_back_over_read_words_holds_off_the_first_hint():
+    script = [(0.5, "letters went by boat then"),
+              (2.5, "letters went by boat then by"),
+              (4.5, "letters went by boat then by boat"),
+              (6.0, "letters went by boat then by boat then inventors")]
+    coach = ReadingCoach(REREAD, ScriptedRecognizer(script), age_years=10)
+    assert _run(coach, 7) == []
+
+
+def test_silence_after_a_hint_still_gets_the_word():
+    coach = ReadingCoach(REREAD, ScriptedRecognizer([(0.5, "letters went by boat then")]), age_years=10)
+    assert _run(coach, 8) == [(4, "hint", "inventors"), (7, "supply", "inventors")]
